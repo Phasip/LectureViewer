@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	
+	<string name="app_name">Lecture Viewer</string>
+
+	<string-array name="loadStringArray">
+		<item>Loading Subjects</item>
+		<item>Loading Topics</item>
+		<item>Loading Courses</item>
+		<item>Loading Lectures</item>
+		<item>Playing Lecture</item>
+		<item>Loading Unknown</item>
+	</string-array>
+	<string-array name="ignoreArray">
+		<item>Online Bachelor\'s Degrees</item>
+		<item>Online Courses for Credit</item>
+		<item>Online Master\'s Degrees</item>
+		<item>Online Professional Certificates</item>
+		<item>Courses for Credit</item>
+		<item>Online Degrees</item>
+	</string-array>
+<string name="first_run_version_title">Please Use Email</string>
+<string name="ok_menu_button">Ok</string>
+<string name="first_run_message">If you have problems with this app please email me. I &lt;b&gt;can not&lt;/b&gt; help you trough comments.</string>
+</resources>
