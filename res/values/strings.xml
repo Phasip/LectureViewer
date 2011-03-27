@@ -21,5 +21,6 @@
 	</string-array>
 <string name="first_run_version_title">Please Use Email</string>
 <string name="ok_menu_button">Ok</string>
-<string name="first_run_message">If you have problems with this app please email me. I &lt;b&gt;can not&lt;/b&gt; help you trough comments.</string>
+<string name="first_run_message">If you have problems with this application please email me.\n\n
+I <b>can not</b> help you trough comments.</string>
 </resources>

@@ -7,11 +7,9 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -70,34 +68,34 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 
 	/* All regex patterns used to find the matches */
 	private enum MyPattern {
-		SUBJECTS("<li><a href=\"(/subjects/.+?)\">(.*?)</a></li>"), 
-		TOPICS("<li><a href=\"(/subjects/.*?)\" class='o?n? ?clearfix'>(.*?)</a></li>"), 
-		COURSES("<h3><a href=\"(/courses/.*?)\">(.*?)</a></h3>\\s*<h4><a href=\".*?\">(.*?)</a> / <a href=\".*?\">(.*?)</a></h4>\\s*(<h5 class=\"speakers-long\">\\s*<a href=\".*?\">\\s*.*?\\s*</a><br/>\\s*</h5>)?") {
+		SUBJECTS("<li><a href=\"(/subjects/.+?)\">(.*?)</a></li>"), TOPICS(
+				"<li><a href=\"(/subjects/.*?)\" class='o?n? ?clearfix'>(.*?)</a></li>"), COURSES(
+				"<h3><a href=\"(/courses/.*?)\">(.*?)</a></h3>\\s*<h4><a href=\".*?\">(.*?)</a> / <a href=\".*?\">(.*?)</a></h4>\\s*(<h5 class=\"speakers-long\">\\s*<a href=\".*?\">\\s*.*?\\s*</a><br/>\\s*</h5>)?") {
 			public void parseMatch(Link result, Matcher m) {
 				result.setName(m.group(2));
 				result.setUrl(MAIN_URL + m.group(1));
 				String desc = m.group(3) + " / " + m.group(4);
-				if (m.groupCount()  == 5 && m.group(5) != null)
-				{
+				if (m.groupCount() == 5 && m.group(5) != null) {
 					String n = m.group(5);
-					//Log.d(APP_NAME,n);
-					Pattern p = Pattern.compile("<h5 class=\"speakers-long\">\\s*<a href=\".*?\">\\s*(.*?)\\s*</a><br/>\\s*</h5>");
+					// Log.d(APP_NAME,n);
+					Pattern p = Pattern
+							.compile("<h5 class=\"speakers-long\">\\s*<a href=\".*?\">\\s*(.*?)\\s*</a><br/>\\s*</h5>");
 					Matcher nm = p.matcher(n);
 					if (nm.find())
-						desc +=  " - " + nm.group(1);
+						desc += " - " + nm.group(1);
 				}
 				result.setDesc(desc);
 			}
 		},
-		LECTURES("<h4><a href=\"(/lectures/.*?)\">(.*?)</a></h4>"), 
-		PAGES("<li><span><a href=\"(/subjects/view/.*?/../../../subjects/.*?/page:[0-9]+/category:.*?)\">([0-9]+)</a></span>");
+		LECTURES("<h4><a href=\"(/lectures/.*?)\">(.*?)</a></h4>"), PAGES(
+				"<li><span><a href=\"(/subjects/view/.*?/../../../subjects/.*?/page:[0-9]+/category:.*?)\">([0-9]+)</a></span>");
 		public void parseMatch(Link result, Matcher m) {
 			result.setName(m.group(2));
 			result.setUrl(MAIN_URL + m.group(1));
 		}
 
 		String pattern;
-		
+
 		public String getPattern() {
 			return pattern;
 		}
@@ -148,7 +146,7 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
+
 		/* Create listview */
 		SpecArrayAdapter<Link> arrayAdapter = new SpecArrayAdapter<Link>(this,
 				R.layout.listitem, currentView, this);
@@ -170,40 +168,42 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 		});
 
 		loadPreferences();
-		versionCheck(); //Ugly, but also calls showmenu.
+		versionCheck(); // Ugly, but also calls showmenu.
 	}
-	private void versionCheck()
-	{
+
+	private void versionCheck() {
 		final int myVer = getVersion();
-		if (myVer > version)
-		{
-			/* Stolen from http://stackoverflow.com/questions/4300012/displaying-a-dialog-in-oncreate */
+		if (myVer > version) {
+			/*
+			 * Stolen from
+			 * http://stackoverflow.com/questions/4300012/displaying-
+			 * a-dialog-in-oncreate
+			 */
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
 			builder.setTitle(R.string.first_run_version_title);
 			builder.setMessage(R.string.first_run_message);
-			builder.setNeutralButton(R.string.ok_menu_button, new DialogInterface.OnClickListener() {
-			        public void onClick(DialogInterface dialog, int id) {
-			        	final SharedPreferences settings = getPreferences(0);
-			        	SharedPreferences.Editor e = settings.edit();
-			        	e.putInt("VERSION", myVer);
-			        	e.commit();
-			        	showMenu();
-			        }
-			    });
+			builder.setNeutralButton(R.string.ok_menu_button,
+					new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int id) {
+							final SharedPreferences settings = getPreferences(0);
+							SharedPreferences.Editor e = settings.edit();
+							e.putInt("VERSION", myVer);
+							e.commit();
+							showMenu();
+						}
+					});
 			AlertDialog alert = builder.create();
 			alert.show(); // <-- Forgot this in the original post
-		}
-		else
-		{
+		} else {
 			showMenu();
 		}
 	}
-	private void showMenu()
-	{
+
+	private void showMenu() {
 		showMenu(menuLevel, currUrl);
 	}
-	private int getVersion()
-	{
+
+	private int getVersion() {
 		PackageInfo pinfo;
 		try {
 			pinfo = getPackageManager().getPackageInfo(getPackageName(), 0);
@@ -212,12 +212,13 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 			return -2;
 		}
 	}
+
 	private void loadPreferences() {
 		currUrl = MAIN_URL + "/subjects";
 		menuLevel = MENU_SUBJECTS;
 		final SharedPreferences settings = getPreferences(0);
 		flvPlayback = settings.getBoolean("playflv", false);
-		//Log.i(APP_NAME, "playflv:" + flvPlayback);
+		// Log.i(APP_NAME, "playflv:" + flvPlayback);
 		version = settings.getInt("VERSION", -1);
 		currUrl = settings.getString("currUrl", MAIN_URL + "/subjects");
 		menuLevel = settings.getInt("menuLevel", MENU_SUBJECTS);
@@ -235,21 +236,21 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 		String tmp = lastUrl.removeLast();
 		showMenu(menuLevel - 1, tmp);
 		lastUrl.removeLast();
-		//Log.i(APP_NAME, "Lasturl list(backpress): " + lastUrl.toString());
+		// Log.i(APP_NAME, "Lasturl list(backpress): " + lastUrl.toString());
 	}
 
 	private void showMenu(int id, String url) {
-		//Log.d(APP_NAME, "showMenu, id: " + id + " url: " + url);
+		// Log.d(APP_NAME, "showMenu, id: " + id + " url: " + url);
 		menuLevel = id;
 
 		// If clicking Link entry with url "retry", try to reload stuff.
 		if (url.equals("retry")) {
-			//Log.d(APP_NAME, "Retrying: " + currUrl);
+			// Log.d(APP_NAME, "Retrying: " + currUrl);
 			url = currUrl;
 			menuLevel--;
 		} else if (!currUrl.equals(url)) {
 			lastUrl.add(currUrl);
-			//Log.i(APP_NAME, "Lasturl list: " + lastUrl.toString());
+			// Log.i(APP_NAME, "Lasturl list: " + lastUrl.toString());
 		}
 		currUrl = url;
 
@@ -257,13 +258,14 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 		String[] loadString = res.getStringArray(R.array.loadStringArray);
 		// The array is corresponding to the constants
 		// Show ProgressDialog
-		
+
 		String mess = "Loading Unknown";
 		if (loadString.length > id && id >= 0)
 			mess = loadString[id];
-		//Log.d(APP_NAME,"id: " + id + " - loadString: " + loadString[id] + " mess: " +mess );
-		proccessDialog = ProgressDialog.show(this, "Working..", mess,
-				true, false);
+		// Log.d(APP_NAME,"id: " + id + " - loadString: " + loadString[id] +
+		// " mess: " +mess );
+		proccessDialog = ProgressDialog.show(this, "Working..", mess, true,
+				false);
 
 		new DownloadHandler().execute();
 
@@ -274,7 +276,7 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 		if (data == null)
 			return;
 
-		Pattern p = Pattern.compile(pattern.getPattern(),Pattern.MULTILINE);
+		Pattern p = Pattern.compile(pattern.getPattern(), Pattern.MULTILINE);
 		Matcher m = p.matcher(data);
 		while (m.find()) {
 			if (m.group(1).length() == 0)
@@ -308,15 +310,21 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 		Toast toast = Toast.makeText(context, msg, len);
 		toast.show();
 	}
+
 	/**
 	 * Reads url
-	 * @param url Web page to fetch, eg http://google.com
+	 * 
+	 * @param url
+	 *            Web page to fetch, eg http://google.com
 	 * @return String containing page.
 	 * @throws URISyntaxException
-	 * @throws ClientProtocolException 
+	 * @throws ClientProtocolException
 	 * @throws IOException
 	 */
-	/* Gets data from url, throws all exceptions, Urisyntax when bad url give, clientprotocol... not sure and io when connection error. */
+	/*
+	 * Gets data from url, throws all exceptions, Urisyntax when bad url give,
+	 * clientprotocol... not sure and io when connection error.
+	 */
 	private String getUrlData(String url) throws URISyntaxException,
 			ClientProtocolException, IOException {
 		/* Return value */
@@ -334,23 +342,26 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 		websiteData = generateString(data);
 		return websiteData;
 	}
-	
+
 	/**
 	 * Read string from InputStream
-	 * @param stream Ready to read InputStream.
+	 * 
+	 * @param stream
+	 *            Ready to read InputStream.
 	 * @return String.
-	 * @throws IOException when read error occurs.
+	 * @throws IOException
+	 *             when read error occurs.
 	 */
 	private String generateString(InputStream stream) throws IOException {
 		BufferedReader buffer = new BufferedReader(
 				new InputStreamReader(stream));
-		
+
 		/* Use StringBuilder because java's strings are horribly slow */
 		StringBuilder sb = new StringBuilder();
-		char []buff = new char[256];
+		char[] buff = new char[256];
 		int read = buffer.read(buff);
 		while (read != -1) {
-			sb.append(buff,0,read);
+			sb.append(buff, 0, read);
 			read = buffer.read(buff);
 		}
 		stream.close();
@@ -395,22 +406,20 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 		case PATTERN_FLV:
 			type = "video/x-flv";
 		case PATTERN_FLASH:
-			if (match.startsWith("<div><embed src=\"\""))
-			{
+			if (match.startsWith("<div><embed src=\"\"")) {
 				postMsg = "Could not find movie to play, if this lecture has a video please report error and refer to the lecture";
 				return;
 			}
 			postMsg = "Could not find movie to play, if this lecture has a video please report error and refer to the lecture";
 			return;
-			
+
 		}
-		
+
 		Intent intent = new Intent(Intent.ACTION_VIEW);
 		intent.setDataAndType(Uri.parse(match), type);
 		try {
-		startActivity(intent);
-		} catch (ActivityNotFoundException ex)
-		{
+			startActivity(intent);
+		} catch (ActivityNotFoundException ex) {
 			switch (currPattern) {
 			case PATTERN_DL:
 				postMsg = "Could not find application to play video file (video/*)";
@@ -421,7 +430,7 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 			case PATTERN_FLV:
 				postMsg = "Could not find application to play flv clip (video/x-flv)";
 				break;
-				
+
 			}
 			return;
 		}
@@ -435,7 +444,7 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 		 * html); startActivity(flashPlayer);
 		 */
 	}
-	
+
 	// @Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		SharedPreferences settings = getPreferences(0);
@@ -461,7 +470,8 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 
 	public boolean onPrepareOptionsMenu(Menu menu) {
 		if (!flvPlayback)
-			menu.getItem(0).setIcon(android.R.drawable.button_onoff_indicator_off);
+			menu.getItem(0).setIcon(
+					android.R.drawable.button_onoff_indicator_off);
 		return true;
 
 	}
@@ -514,8 +524,7 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 		@SuppressWarnings("unchecked")
 		protected void onPostExecute(String error) {
 			proccessDialog.dismiss();
-			if (postMsg != null && !postMsg.equals(""))
-			{
+			if (postMsg != null && !postMsg.equals("")) {
 				shortToast(postMsg);
 				postMsg = null;
 			}
