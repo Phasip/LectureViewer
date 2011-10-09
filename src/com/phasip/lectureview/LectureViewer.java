@@ -1,46 +1,33 @@
 package com.phasip.lectureview;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URI;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
 
+import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ListActivity;
+import android.app.Dialog;
 import android.app.ProgressDialog;
-import android.content.ActivityNotFoundException;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.SharedPreferences;
+import android.content.*;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.res.Resources;
+import android.content.res.*;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.view.*;
+import android.view.ContextMenu.ContextMenuInfo;
+import android.view.View.OnClickListener;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.*;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.TextView.OnEditorActionListener;
 
 /**
  * A small java application for android that indexes academicearth.org and makes
@@ -49,126 +36,311 @@ import android.widget.AdapterView.OnItemClickListener;
  * @author Pasi Saarinen
  * @email phasip@gmail.com
  */
-public class LectureViewer extends ListActivity implements ViewHandler<Link> {
-	private static final String APP_NAME = "Lecture Viewer";
+public class LectureViewer extends Activity implements OnItemClickListener {
+	private static final String TAB_BROWSE = "browse";
+	private static final String TAB_FIND = "find";
+	private static final String STORE_LAST = "last";
+	private static final String STORE_FAV = "fav";
+	private static final String STORE_VERSION = "VERSION";
+	private static final String STORE_FLV = "playflv";
+	private static final String STORE_RSS = "loadrss";
+	public static final String APP_NAME = "Lecture Viewer";
 	/* Our fun constants... not much really */
-	private final static String MAIN_URL = "http://www.academicearth.org";
-	private final static String STORE_SEPARATOR = "|_|";
-	private final static int MENU_SUBJECTS = 0;
-	private final static int MENU_TOPICS = 1;
-	private final static int MENU_COURSES = 2;
-	private final static int MENU_LECTURES = 3;
-	private final static int MENU_PLAY = 4;
+	public final static String MAIN_URL = "http://www.academicearth.org";
 	private final static int PATTERN_DL = 0;
 	private final static int PATTERN_YOUTUBE = 1;
 	private final static int PATTERN_FLV = 2;
 	private final static int PATTERN_FLASH = 3;
 	private final static int PLAY_PATTERN_END = 3;
+	private String mess = "Loading Unknown...";
+
+	public final static int MENU_SUBJECTS = 0;
+	public final static int MENU_TOPICS = 1;
+	public final static int MENU_COURSES = 2;
+	public final static int MENU_LECTURES = 3;
+	public final static int MENU_PLAY = 4;
+	public final static int MENU_SEARCH = 5;
+	public final static int MENU_RETRY = 6;
+	public final static int MENU_PAGES = 7;
+	private static final int DIALOG_PROCESS = 2;
 	private String postMsg = "";
 
 	/* All regex patterns used to find the matches */
-	private enum MyPattern {
-		SUBJECTS("<li><a href=\"(/subjects/.+?)\">(.*?)</a></li>"), TOPICS(
-				"<li><a href=\"(/subjects/.*?)\" class='o?n? ?clearfix'>(.*?)</a></li>"), COURSES(
-				"<h3><a href=\"(/courses/.*?)\">(.*?)</a></h3>\\s*<h4><a href=\".*?\">(.*?)</a> / <a href=\".*?\">(.*?)</a></h4>\\s*(<h5 class=\"speakers-long\">\\s*<a href=\".*?\">\\s*.*?\\s*</a><br/>\\s*</h5>)?") {
-			public void parseMatch(Link result, Matcher m) {
-				result.setName(m.group(2));
-				result.setUrl(MAIN_URL + m.group(1));
-				String desc = m.group(3) + " / " + m.group(4);
-				if (m.groupCount() == 5 && m.group(5) != null) {
-					String n = m.group(5);
-					// Log.d(APP_NAME,n);
-					Pattern p = Pattern
-							.compile("<h5 class=\"speakers-long\">\\s*<a href=\".*?\">\\s*(.*?)\\s*</a><br/>\\s*</h5>");
-					Matcher nm = p.matcher(n);
-					if (nm.find())
-						desc += " - " + nm.group(1);
-				}
-				result.setDesc(desc);
-			}
-		},
-		LECTURES("<h4><a href=\"(/lectures/.*?)\">(.*?)</a></h4>"), PAGES(
-				"<li><span><a href=\"(/subjects/view/.*?/../../../subjects/.*?/page:[0-9]+/category:.*?)\">([0-9]+)</a></span>");
-		public void parseMatch(Link result, Matcher m) {
-			result.setName(m.group(2));
-			result.setUrl(MAIN_URL + m.group(1));
-		}
-
-		String pattern;
-
-		public String getPattern() {
-			return pattern;
-		}
-
-		MyPattern(String s) {
-			pattern = s;
-		}
-
-		public static MyPattern fromInt(int a) {
-			switch (a) {
-			case MENU_SUBJECTS:
-				return SUBJECTS;
-			case MENU_TOPICS:
-				return TOPICS;
-			case MENU_COURSES:
-				return COURSES;
-			case MENU_LECTURES:
-				return LECTURES;
-			}
-			return null;
-		}
-	}
 
 	private final static String[] PATTERNS = new String[4];
+	private static final int ID_ADDFAV_FIND = 0;
+	private static final int ID_ADDFAV_BROWSE = 1;
+	private static final int ID_DELFAV = 2;
+	private static final int ID_ADDRSS_BROWSE = 3;
+	private static final int ID_ADDRSS_FIND = 4;
+	private static final int ID_ADDRSS_FAV = 5;
 	{
 		PATTERNS[PATTERN_FLASH] = "<textarea id=\"lecture-embed\" readonly=\"readonly\">(.+?)</textarea>";
 		PATTERNS[PATTERN_DL] = "<a href=\"(.+?)\" class=\"download-link\">Download Video </a>";
-		PATTERNS[PATTERN_FLV] = "flashVars.flvURL = \"(http://.*?flv)\";";
+		PATTERNS[PATTERN_FLV] = "flashVars.flvURL ?= ?\"(.+?)\";";
+		// flashVars.flvURL =
+		// "http://blip.tv/file/get/AEaccount4-ECO39265.flv?source=2";
 		PATTERNS[PATTERN_YOUTUBE] = "<textarea id=\"lecture-embed\" readonly=\"readonly\"><div><embed src=\"http://www.youtube.com/v/(.+?)\" type=\"application/x-shockwave-flash\"";
 	}
-
 	/* The array storing the info about the current items in the datalist */
-	private ArrayList<Link> currentView = new ArrayList<Link>();
+	// private ArrayList<Link> currentView = new ArrayList<Link>();
 	/* Progressbar */
-	private ProgressDialog proccessDialog;
+
 	/* Where we are in the browsing */
-	private int menuLevel = MENU_SUBJECTS;
+	// private int menuLevel = MENU_SUBJECTS;
 	/* The stack tree */
-	private StorableStringList lastUrl;
+	// private StorableStringList lastUrl;
 	/* Current url */
-	private String currUrl = "";
+	// private String currUrl = "";
+	/* Current Link */
+	private Link currLink = null;
 	/* Shall we play a flvmovie */
 	private boolean flvPlayback = false;
+	private boolean rssPlayback = false;
+	private ProgressDialog proccessDialog;
 	/* Our version */
 	private int version = -1;
+	LectureListView browseList;
+	LectureListView favList;
+	LectureListView findList;
+	TabHost tabs;
+
+	public void tabCreate() {
+		setContentView(R.layout.tablayout);
+		Resources res = getResources(); // Resource object to get Drawables
+
+		tabs = (TabHost) findViewById(R.id.TabHost);
+
+		tabs.setup();
+
+		TabHost.TabSpec spec1 = tabs.newTabSpec(TAB_BROWSE);
+		spec1.setIndicator("Browse", res.getDrawable(R.drawable.ic_tab_browse));
+		spec1.setContent(R.id.mainTab);
+
+		TabHost.TabSpec spec2 = tabs.newTabSpec(TAB_FIND);
+		spec2.setIndicator("Find", res.getDrawable(R.drawable.ic_tab_find));
+		spec2.setContent(R.id.findTab);
+
+		TabHost.TabSpec spec3 = tabs.newTabSpec(STORE_FAV);
+		spec3.setIndicator("Fav", res.getDrawable(R.drawable.ic_tab_fav));
+		spec3.setContent(R.id.favTab);
+
+		tabs.addTab(spec1);
+		tabs.addTab(spec2);
+		tabs.addTab(spec3);
+
+	}
+
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View v,
+			ContextMenuInfo menuInfo) {
+		Patterns tmp = Patterns.COURSES;
+		if (v.getId() == R.id.browseList || v.getId() == R.id.findList) {
+			AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
+			ArrayList<Link> list = browseList.getList();
+
+			if (v.getId() == R.id.findList)
+				list = findList.getList();
+
+			String name = "ERROR";
+			if (info.position >= 0 && info.position < list.size()) {
+				name = list.get(info.position).getName();
+				tmp = list.get(info.position).getType();
+			}
+
+			menu.setHeaderTitle(name);
+			menu.add(Menu.NONE,
+					(v.getId() == R.id.browseList) ? ID_ADDFAV_BROWSE
+							: ID_ADDFAV_FIND, 0, "Add to fav");
+			if (tmp == Patterns.LECTURES)
+				menu.add(Menu.NONE,
+						(v.getId() == R.id.browseList) ? ID_ADDRSS_BROWSE
+								: ID_ADDRSS_FIND, 1, "Open RSS");
+		}
+
+		if (v.getId() == R.id.favList) {
+			AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
+			ArrayList<Link> list = favList.getList();
+			String name = "ERROR";
+			if (info.position >= 0 && info.position < list.size()) {
+				name = list.get(info.position).getName();
+				tmp = list.get(info.position).getType();
+			}
+
+			menu.setHeaderTitle(name);
+			menu.add(Menu.NONE, ID_DELFAV, 0, R.string.delfav);
+			if (tmp == Patterns.LECTURES)
+				menu.add(Menu.NONE, ID_ADDRSS_FAV, 1, "Open RSS");
+
+		}
+	}
+
+	public void addFav(Link l) {
+		if (l == null) {
+			shortToast(R.string.err_null_fav);
+			return;
+		}
+		l = l.clone();
+
+		String desc = l.getDesc();
+		ArrayList<Link> fav = favList.getList();
+		if ((desc == null || desc.length() == 0) && currLink != null)
+			l.setDesc(currLink.getName());
+
+		if (fav.contains(l)) {
+			shortToast(R.string.allready_fav);
+			return;
+		}
+		favList.add(l);
+		favList.notifyChange();
+
+	}
+
+	public void delFav(Link l) {
+		ArrayList<Link> f = favList.getList();
+		f.remove(l);
+	}
+
+	protected void onPause() {
+		super.onPause();
+		ArrayList<Link> l = favList.getList();
+		storeArray(l, STORE_FAV);
+	}
+
+	public Link getListItem(ArrayList<Link> list, int pos) {
+		if (pos < 0 || pos >= list.size()) {
+			shortToast("Index out of bounds error?...");
+			return null;
+		}
+		return list.get(pos);
+
+	}
+
+	@Override
+	public boolean onContextItemSelected(MenuItem item) {
+		AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item
+				.getMenuInfo();
+		ArrayList<Link> list;
+		Link l;
+		switch (item.getItemId()) {
+		case ID_ADDRSS_BROWSE:
+			l = getListItem(browseList.getList(), info.position);
+			if (l == null)
+				return true;
+			play_rss(l);
+			return true;
+		case ID_ADDRSS_FIND:
+			l = getListItem(findList.getList(), info.position);
+			if (l == null)
+				return true;
+			play_rss(l);
+			return true;
+
+		case ID_ADDRSS_FAV:
+			l = getListItem(favList.getList(), info.position);
+			if (l == null)
+				return true;
+			play_rss(l);
+			return true;
+
+		case ID_ADDFAV_FIND:
+			list = findList.getList();
+			if (info.position < 0 || info.position >= list.size()) {
+				shortToast("Index out of bounds error?...");
+				return true;
+			}
+			l = list.get(info.position);
+			addFav(l);
+			return true;
+		case ID_ADDFAV_BROWSE:
+			list = browseList.getList();
+			if (info.position < 0 || info.position >= list.size()) {
+				shortToast("Index out of bounds error?...");
+				return true;
+			}
+			l = list.get(info.position);
+			addFav(l);
+			return true;
+		case ID_DELFAV:
+			list = favList.getList();
+
+			if (info.position < 0 || info.position >= list.size()) {
+				shortToast("Index out of bounds error?...");
+				return true;
+			}
+			list.remove(info.position);
+			favList.notifyChange();
+			return true;
+		}
+
+		return false;
+	}
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		/* Create listview */
-		SpecArrayAdapter<Link> arrayAdapter = new SpecArrayAdapter<Link>(this,
-				R.layout.listitem, currentView, this);
-		setListAdapter(arrayAdapter);
-		this.setContentView(R.layout.main);
-		final ListView mainListview = getListView();
-		mainListview.setTextFilterEnabled(true);
-		mainListview.setOnItemClickListener(new OnItemClickListener() {
+		tabCreate();
+		favList = (LectureListView) this.findViewById(R.id.favList);
+		favList.setOnItemClickListener(this);
+		findList = (LectureListView) this.findViewById(R.id.findList);
+		findList.setOnItemClickListener(this);
+		browseList = (LectureListView) this.findViewById(R.id.browseList);
+		browseList.setOnItemClickListener(this);
+		registerForContextMenu(browseList);
+		registerForContextMenu(findList);
+		registerForContextMenu(favList);
+
+		final EditText findText = (EditText) this.findViewById(R.id.findText);
+		findText.setOnEditorActionListener(new OnEditorActionListener() {
 			@Override
-			/* What to do when listview clicked */
-			public void onItemClick(AdapterView<?> parent, View view,
-					int position, long id) {
-				final Link loadUrl = (Link) parent.getItemAtPosition(position);
-				showMenu(menuLevel + 1, loadUrl.getUrl()); // Yes, check the
-				// menulevel
-				// numbers and you'll
-				// see
+			public boolean onEditorAction(TextView v, int actionId,
+					KeyEvent event) {
+				if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+					imm.hideSoftInputFromWindow(findText.getWindowToken(), 0);
+					findCourses(findText.getText());
+
+				}
+				return true;
 			}
 		});
+		final Button findButton = (Button) this.findViewById(R.id.findButton);
+		findButton.setOnClickListener(new OnClickListener() {
 
+			@Override
+			public void onClick(View v) {
+				InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+				imm.hideSoftInputFromWindow(findText.getWindowToken(), 0);
+				findCourses(findText.getText());
+
+			}
+
+		});
 		loadPreferences();
 		versionCheck(); // Ugly, but also calls showmenu.
+	}
+
+	public void findCourses(CharSequence find) {
+
+		Link l = new Link();
+		l
+				.setUrl("http://academicearth.org/lectures/search/"
+						+ find
+						+ "/search-within:All/search-universities:All/search-subjects:All/search-rating:-1/search-sort:Relevancy/");
+		l.setType(Patterns.SEARCH);
+		showMenu(l);
+	}
+
+	public void onItemClick(AdapterView<?> parent, View view, int position,
+			long id) {
+		final Link loadUrl = (Link) parent.getItemAtPosition(position);
+		// Log.d(APP_NAME, APP_NAME + " Loading url: " + loadUrl.getUrl()
+		// + " id: " + loadUrl.getIntType());
+		if (loadUrl.getType() != Patterns.PLAY)
+			tabs.setCurrentTabByTag(TAB_BROWSE);
+		showMenu(loadUrl); // Yes, check the
 	}
 
 	private void versionCheck() {
@@ -187,20 +359,34 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 						public void onClick(DialogInterface dialog, int id) {
 							final SharedPreferences settings = getPreferences(0);
 							SharedPreferences.Editor e = settings.edit();
-							e.putInt("VERSION", myVer);
+							e.putInt(STORE_VERSION, myVer);
 							e.commit();
 							showMenu();
 						}
 					});
 			AlertDialog alert = builder.create();
-			alert.show(); // <-- Forgot this in the original post
+			alert.show();
 		} else {
 			showMenu();
 		}
 	}
 
+	@Override
+	protected Dialog onCreateDialog(int id) {
+		if (id == DIALOG_PROCESS) {
+			ProgressDialog loadingDialog = new ProgressDialog(this);
+			loadingDialog.setTitle("Working..");
+			loadingDialog.setMessage(mess);
+			loadingDialog.setIndeterminate(true);
+			loadingDialog.setCancelable(false);
+			return loadingDialog;
+		}
+
+		return super.onCreateDialog(id);
+	}
+
 	private void showMenu() {
-		showMenu(menuLevel, currUrl);
+		showMenu(currLink);
 	}
 
 	private int getVersion() {
@@ -214,91 +400,107 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 	}
 
 	private void loadPreferences() {
-		currUrl = MAIN_URL + "/subjects";
-		menuLevel = MENU_SUBJECTS;
+		currLink = new Link();
+		currLink.setType(Patterns.SUBJECTS);
+		currLink.setUrl(MAIN_URL + "/subjects");
 		final SharedPreferences settings = getPreferences(0);
-		flvPlayback = settings.getBoolean("playflv", false);
-		// Log.i(APP_NAME, "playflv:" + flvPlayback);
-		version = settings.getInt("VERSION", -1);
-		currUrl = settings.getString("currUrl", MAIN_URL + "/subjects");
-		menuLevel = settings.getInt("menuLevel", MENU_SUBJECTS);
-		String tmp = settings.getString("last", MAIN_URL + "/subjects");
-		lastUrl = StorableStringList.loadString(tmp, STORE_SEPARATOR);
+		// TODO: FLV PLAYBACK ALWAYS ENABLED
+		flvPlayback = true; // settings.getBoolean(STORE_FLV, false);
+		rssPlayback = settings.getBoolean(STORE_RSS, false);
+		version = settings.getInt(STORE_VERSION, -1);
+
+		Link l = linkFromFile(STORE_LAST);
+		if (l != null)
+			currLink = l;
+		ArrayList<Link> f = favList.getList();
+		f.clear();
+		ArrayList<Link> fa;
+		try {
+			fa = fromFile(STORE_FAV);
+			if (fa != null)
+				f.addAll(fa);
+
+		} catch (Exception e) {
+			shortToast(e.getMessage());
+		}
+		favList.notifyChange();
+
 	}
 
 	@Override
 	public void onBackPressed() {
-		// Move one url back.
-		if (lastUrl.size() < 2) {
+		if (currLink.getPrev() == null) {
 			this.finish();
 			return;
 		}
-		String tmp = lastUrl.removeLast();
-		showMenu(menuLevel - 1, tmp);
-		lastUrl.removeLast();
-		// Log.i(APP_NAME, "Lasturl list(backpress): " + lastUrl.toString());
+		currLink = currLink.getPrev();
+		showMenu(currLink);
 	}
 
-	private void showMenu(int id, String url) {
-		// Log.d(APP_NAME, "showMenu, id: " + id + " url: " + url);
-		menuLevel = id;
+	@Override
+	public boolean onSearchRequested() {
+		tabs.setCurrentTabByTag(TAB_FIND);
+		EditText te = (EditText) findViewById(R.id.findText);
+		te.setText("");
+		te.requestFocus();
+		return false; // don't go ahead and show the search box
+	}
 
+	private void showMenu(Link url) {
+		// Log.d(APP_NAME, APP_NAME + " showMenu, id: " + url.getIntType()
+		// + " url: " + url.getUrl());
+		url = url.clone();
 		// If clicking Link entry with url "retry", try to reload stuff.
-		if (url.equals("retry")) {
-			// Log.d(APP_NAME, "Retrying: " + currUrl);
-			url = currUrl;
-			menuLevel--;
-		} else if (!currUrl.equals(url)) {
-			lastUrl.add(currUrl);
-			// Log.i(APP_NAME, "Lasturl list: " + lastUrl.toString());
+		if (url.hasType(Patterns.RETRY)) {
+			url = currLink;
+		} else if (!currLink.equals(url)) {
+			if (currLink.hasType(Patterns.SEARCH)) // We don't want searches to
+				// be redone when pressing
+				// back.
+				url.setPrev(currLink.getPrev());
+			else
+				url.setPrev(currLink);
+		} else // currLink.equals(url)
+		{
+			url.setPrev(currLink.getPrev());
 		}
-		currUrl = url;
+
+		if (url.hasType(Patterns.LECTURES) && rssPlayback) {
+			// Log.d(APP_NAME, url.getName() + " - " + url.getUrl());
+			if (play_rss(url))
+				return;
+		}
+
+		currLink = url;
+
+		int id = currLink.getIntType();
 
 		Resources res = getResources(); // Get string array list
 		String[] loadString = res.getStringArray(R.array.loadStringArray);
-		// The array is corresponding to the constants
-		// Show ProgressDialog
 
-		String mess = "Loading Unknown";
+		mess = loadString[loadString.length - 1];
+
 		if (loadString.length > id && id >= 0)
 			mess = loadString[id];
-		// Log.d(APP_NAME,"id: " + id + " - loadString: " + loadString[id] +
-		// " mess: " +mess );
-		proccessDialog = ProgressDialog.show(this, "Working..", mess, true,
-				false);
 
+		proccessDialog = ProgressDialog.show(LectureViewer.this, "Working...",
+				mess);
 		new DownloadHandler().execute();
 
 	}
 
-	private void loadPattern(MyPattern pattern, String data,
-			ArrayList<Link> result) {
-		if (data == null)
-			return;
-
-		Pattern p = Pattern.compile(pattern.getPattern(), Pattern.MULTILINE);
-		Matcher m = p.matcher(data);
-		while (m.find()) {
-			if (m.group(1).length() == 0)
-				continue;
-			// Log.d("LectureViewer", "loadPattern: " + MAIN_URL +
-			// m.group(1) + " - " + m.group(2));
-			Link l = new Link();
-			pattern.parseMatch(l, m);
-			result.add(l);
-
+	private boolean play_rss(Link url) {
+		String match = url.getUrl() + "/video.rss";
+		String type = "application/rss+xml";
+		Intent intent = new Intent(Intent.ACTION_VIEW);
+		intent.setDataAndType(Uri.parse(match), type);
+		try {
+			startActivity(intent);
+		} catch (ActivityNotFoundException ex) {
+			shortToast("Fail to launch rss, please install rss application");
+			return false;
 		}
-	}
-
-	private void parseCourses(String data) throws ClientProtocolException,
-			URISyntaxException, IOException {
-		ArrayList<Link> pages = new ArrayList<Link>();
-		loadPattern(MyPattern.PAGES, data, pages);
-		loadPattern(MyPattern.COURSES, data, currentView);
-		for (int i = 0; i < pages.size() / 2; i++) {
-			data = getUrlData(pages.get(i).getUrl());
-			loadPattern(MyPattern.COURSES, data, currentView);
-		}
+		return true;
 
 	}
 
@@ -311,6 +513,12 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 		toast.show();
 	}
 
+	private void shortToast(int msg) {
+		Resources res = getResources(); // Get string array list
+		String msg2 = res.getString(msg);
+		shortToast(msg2);
+	}
+
 	/**
 	 * Reads url
 	 * 
@@ -321,72 +529,25 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 */
-	/*
-	 * Gets data from url, throws all exceptions, Urisyntax when bad url give,
-	 * clientprotocol... not sure and io when connection error.
-	 */
-	private String getUrlData(String url) throws URISyntaxException,
-			ClientProtocolException, IOException {
-		/* Return value */
-		String websiteData = null;
-		/* Create a http client */
-		DefaultHttpClient client = new DefaultHttpClient();
-		/* Load the uri (http://... ) */
-		URI uri = new URI(url);
-		/* Get method, use HttpPost for post (eg login) */
-		HttpGet method = new HttpGet(uri);
-		/* Execute the query */
-		HttpResponse res = client.execute(method);
-		/* make data ready to read the page */
-		InputStream data = res.getEntity().getContent();
-		websiteData = generateString(data);
-		return websiteData;
-	}
-
-	/**
-	 * Read string from InputStream
-	 * 
-	 * @param stream
-	 *            Ready to read InputStream.
-	 * @return String.
-	 * @throws IOException
-	 *             when read error occurs.
-	 */
-	private String generateString(InputStream stream) throws IOException {
-		BufferedReader buffer = new BufferedReader(
-				new InputStreamReader(stream));
-
-		/* Use StringBuilder because java's strings are horribly slow */
-		StringBuilder sb = new StringBuilder();
-		char[] buff = new char[256];
-		int read = buffer.read(buff);
-		while (read != -1) {
-			sb.append(buff, 0, read);
-			read = buffer.read(buff);
-		}
-		stream.close();
-		return sb.toString();
-	}
 
 	// Maybe a bit ugly.
 	private void playMovie(String data) {
 
-		menuLevel--; // We never stay in playmovie.
-		currUrl = lastUrl.remove(lastUrl.size() - 1);
+		currLink = currLink.getPrev();
 		int currPattern = PATTERN_DL;
 		Matcher m = null;
 		/* Find a working pattern */
 		for (currPattern = 0; currPattern <= PLAY_PATTERN_END; currPattern++) {
 			/* If flv pattern enabled */
-			if (currPattern == PATTERN_FLV && !flvPlayback)
+			if (currPattern == PATTERN_FLV && !flvPlayback) {
+				// Log.d(APP_NAME, "Skipping FLV, not enabled!");
 				continue;
+			}
 
 			Pattern p = Pattern.compile(PATTERNS[currPattern]);
 			m = p.matcher(data);
 			if (m.find())
 				break;
-			Log.d(APP_NAME, "Pattern " + currPattern
-					+ " not matched in playMovie");
 		}
 		/* If we looped trough */
 		if (currPattern > PLAY_PATTERN_END) {
@@ -405,6 +566,7 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 			break;
 		case PATTERN_FLV:
 			type = "video/x-flv";
+			break;
 		case PATTERN_FLASH:
 			if (match.startsWith("<div><embed src=\"\"")) {
 				postMsg = "Could not find movie to play, if this lecture has a video please report error and refer to the lecture";
@@ -428,21 +590,12 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 				postMsg = "Could not find application to play youtube clip (vnd.youtube)";
 				break;
 			case PATTERN_FLV:
-				postMsg = "Could not find application to play flv clip (video/x-flv)";
+				postMsg = "Could not find application to play flv clip (video/x-flv) - I recommend RockPlayer Lite";
 				break;
 
 			}
 			return;
 		}
-		/*
-		 * handler.sendEmptyMessage(SHOW_ERROR_TOASTER); String html =
-		 * "<html><body bgcolor=\"#000000\">" + match + "</body></html>"; html =
-		 * html.replace("width=\"500\" height=\"311\"",
-		 * "width=\"100%\" height=\"100%\"");
-		 * 
-		 * flashPlayer.putExtra("url", currUrl); flashPlayer.putExtra("data",
-		 * html); startActivity(flashPlayer);
-		 */
 	}
 
 	// @Override
@@ -454,18 +607,98 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 			int icon = flvPlayback ? android.R.drawable.button_onoff_indicator_on
 					: android.R.drawable.button_onoff_indicator_off;
 			item.setIcon(icon);
-			editor.putBoolean("playflv", flvPlayback);
-			Log.i(APP_NAME, "FlvPlayback: " + flvPlayback);
-			shortToast(flvPlayback ? ".flv playback enabled"
-					: ".flv playback disabled");
+			editor.putBoolean(STORE_FLV, flvPlayback);
+
+			shortToast(flvPlayback ? R.string.flv_enabled
+					: R.string.flv_disabled);
 		} else if (item.getItemId() == R.id.setasdefault) {
-			editor.putString("currUrl", currUrl);
-			editor.putInt("menuLevel", menuLevel);
-			editor.putString("last", lastUrl.saveString(STORE_SEPARATOR));
-			shortToast("Current view set to default");
+
+			if (!storeLink(currLink, STORE_LAST))
+				shortToast("Fails to set default, please retry later. If error perists, email developer");
+			else
+				shortToast(R.string.view_default);
+		} else if (item.getItemId() == R.id.enablerss) {
+			rssPlayback = !rssPlayback;
+			int icon = rssPlayback ? android.R.drawable.button_onoff_indicator_on
+					: android.R.drawable.button_onoff_indicator_off;
+			item.setIcon(icon);
+			editor.putBoolean(STORE_RSS, rssPlayback);
+
+			shortToast(rssPlayback ? R.string.rss_enabled
+					: R.string.rss_disabled);
+
 		}
+
 		editor.commit();
 		return true;
+	}
+
+	private Link linkFromFile(String filename) {
+		ArrayList<Link> l;
+		try {
+			l = fromFile(filename);
+		} catch (ToastException e) {
+			shortToast(e.getMessage());
+			l = null;
+		}
+
+		if (l == null)
+			return null;
+
+		Link a = null;
+		Link b = null;
+		for (int i = 0; i < l.size(); i++) {
+			b = l.get(i);
+			b.setPrev(a);
+			a = b;
+		}
+		return b;
+	}
+
+	@SuppressWarnings("unchecked")
+	private ArrayList<Link> fromFile(String fileName) throws ToastException {
+		try {
+			ObjectInputStream ois;
+			FileInputStream fos = openFileInput(fileName);
+			ois = new ObjectInputStream(fos);
+			ArrayList<Link> ret = (ArrayList<Link>) ois.readObject();
+			ois.close();
+			return ret;
+		} catch (ClassCastException e) {
+			throw new ToastException("Stream corrupted");
+		} catch (StreamCorruptedException e) {
+			throw new ToastException("Stream corrupted");
+		} catch (OptionalDataException e) {
+			throw new ToastException("Stream corrupted");
+		} catch (ClassNotFoundException e) {
+			throw new ToastException("Stream corrupted");
+		} catch (IOException e) {
+			return null;
+		}
+
+	}
+
+	private boolean storeLink(Link l, String filename) {
+		ArrayList<Link> put = new ArrayList<Link>();
+		while (l != null) {
+			put.add(l);
+			l = l.getPrev();
+		}
+		return storeArray(put, filename);
+	}
+
+	private boolean storeArray(ArrayList<Link> o, String fileName) {
+		try {
+			FileOutputStream fos = openFileOutput(fileName,
+					Context.MODE_PRIVATE);
+			ObjectOutputStream oos = new ObjectOutputStream(fos);
+			oos.writeObject(o);
+			oos.close();
+			return true;
+		} catch (IOException e) {
+			return false;
+		}
+
 	}
 
 	public boolean onPrepareOptionsMenu(Menu menu) {
@@ -484,73 +717,67 @@ public class LectureViewer extends ListActivity implements ViewHandler<Link> {
 	}
 
 	private class DownloadHandler extends AsyncTask<Void, Void, String> {
+		LectureListView currentList;
+		ArrayList<Link> currentView;
+
 		protected String doInBackground(Void... none) {
-			String data;
-			try {
-				data = getUrlData(currUrl);
-				switch (menuLevel) {
-				case MENU_SUBJECTS:
-				case MENU_TOPICS:
-				case MENU_LECTURES:
-					currentView.clear();
-					loadPattern(MyPattern.fromInt(menuLevel), data, currentView);
-					break;
-				case MENU_COURSES:
-					currentView.clear();
-					parseCourses(data);
-					Collections.sort(currentView); // This can have multiple
-					// pages...
-					break;
-				case MENU_PLAY:
+
+			if (currLink.getType() == Patterns.PLAY) {
+				String data;
+				currentList = browseList;
+				currentView = browseList.getList();
+				try {
+					// Log.d(APP_NAME,"Playing: " + currLink.getUrl());
+					data = WebFetcher.getUrlData(currLink.getUrl());
 					playMovie(data);
-					break;
-				default:
-					finish();
-					return null;
+				} catch (ToastException e) {
+					return e.getMessage();
 				}
-			} catch (ClientProtocolException e) {
-				e.printStackTrace();
-				return "Exception... Your phone doesn't support http?";
-			} catch (URISyntaxException e) {
-				e.printStackTrace();
-				return "Exception... Maybe the regex?";
-			} catch (IOException e) {
-				e.printStackTrace();
-				return "Connection error, please retry.";
+
+				return null;
+			} else if (currLink.getType() == Patterns.SEARCH)
+				currentList = findList;
+			else {
+				currentList = browseList;
+				if (!storeLink(currLink, STORE_LAST)) {
+					Log.d(APP_NAME, "Fails to save last location");
+				}
 			}
-			return null;
+
+			currentView = currentList.getList();
+			try {
+				WebFetcher.fetch(currentView, currLink);
+				return null;
+			} catch (ToastException e) {
+				return e.getMessage();
+			}
 		}
 
-		@SuppressWarnings("unchecked")
 		protected void onPostExecute(String error) {
-			proccessDialog.dismiss();
+			if (proccessDialog != null) {
+				try {
+					proccessDialog.hide();
+					proccessDialog.dismiss();
+				} catch (IllegalArgumentException e) {
+					Log.d(APP_NAME,
+							"Roatation caused dialog error... ignoring.");
+				}
+			}
+
 			if (postMsg != null && !postMsg.equals("")) {
 				shortToast(postMsg);
 				postMsg = null;
 			}
 			if (error != null) {
 				currentView.clear();
-				currentView.add(new Link(
-						"Connection Fails, Press here to retry", "retry")); // Maybe
-				// this
-				// is
-				// ugly...
-				shortToast(error);
+				Link retryLink = new Link(
+						"Connection Fails, Press here to retry", "retry");
+				retryLink.setType(Patterns.RETRY);
+				currentView.add(retryLink);
 			}
-			((ArrayAdapter<Link>) getListAdapter()).notifyDataSetChanged();
+
+			currentList.notifyChange();
 		}
-
-	}
-
-	@Override
-	public void handle(View v, Link object) {
-		TextView t = (TextView) v.findViewById(R.id.maintext_sa);
-		t.setText(object.getName());
-		t = (TextView) v.findViewById(R.id.desctext_sa);
-		if (object.getDesc() == null)
-			t.setText("");
-		else
-			t.setText(object.getDesc());
 	}
 
 }

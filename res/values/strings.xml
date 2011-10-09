@@ -9,6 +9,7 @@
 		<item>Loading Courses</item>
 		<item>Loading Lectures</item>
 		<item>Playing Lecture</item>
+		<item>Searching</item>
 		<item>Loading Unknown</item>
 	</string-array>
 	<string-array name="ignoreArray">
@@ -19,8 +20,16 @@
 		<item>Courses for Credit</item>
 		<item>Online Degrees</item>
 	</string-array>
+<string name="delfav">Delete fav</string>
+<string name="err_null_fav">Adding null to fav?...</string>
+<string name="flv_enabled">.flv playback enabled</string>
+<string name="flv_disabled">.flv playback disabled</string>
+<string name="rss_enabled">Loading lectures trough rss</string>
+<string name="rss_disabled">Loding lectures trough lectureviewer</string>
 <string name="first_run_version_title">Please Use Email</string>
 <string name="ok_menu_button">Ok</string>
+<string name="view_default">Current view set to default</string>
+<string name="allready_fav">This is already in favorites</string>
 <string name="first_run_message">If you have problems with this application please email me.\n\n
 I <b>can not</b> help you trough comments.</string>
 </resources>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- android:id="@android:id/tabhost"  -->
+<TabHost xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/TabHost"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent">
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:padding="5dp">
+        <TabWidget
+            android:id="@android:id/tabs"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content" />
+        <FrameLayout
+            android:id="@android:id/tabcontent"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:padding="5dp">
+            <LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="fill_parent"
+  android:layout_height="fill_parent"
+  android:id="@+id/mainTab">
+<com.phasip.lectureview.LectureListView android:layout_width="fill_parent" android:layout_height="wrap_content" android:id="@+id/browseList"/>
+</LinearLayout>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="fill_parent"
+  android:layout_height="fill_parent"
+  android:id="@+id/favTab">
+<com.phasip.lectureview.LectureListView android:layout_width="fill_parent" android:layout_height="wrap_content" android:id="@+id/favList"/>
+</LinearLayout>
+	<LinearLayout
+	  xmlns:android="http://schemas.android.com/apk/res/android"
+	  android:layout_width="fill_parent"
+android:orientation="vertical"
+  android:layout_height="wrap_content"
+	  android:id="@+id/findTab">
+	  <LinearLayout
+	  android:layout_width="fill_parent"
+	android:orientation="horizontal"
+  	android:layout_height="wrap_content"
+  	android:id="@+id/findTab_sub"
+  	>
+	  <EditText android:imeOptions="actionSearch" android:layout_width="fill_parent" android:layout_weight="1" android:layout_height="wrap_content" android:id="@+id/findText"/>
+	  <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/findButton" android:text="Find" />
+	  </LinearLayout>
+	  <com.phasip.lectureview.LectureListView android:layout_below="@id/findText" android:layout_weight="1.0" android:layout_width="fill_parent" android:layout_height="wrap_content" android:id="@+id/findList"/>
+	  
+	 
+	</LinearLayout>
+  </FrameLayout>
+            
+                    
+    </LinearLayout>
+</TabHost>

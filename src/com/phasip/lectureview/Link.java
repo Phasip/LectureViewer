@@ -1,10 +1,77 @@
 package com.phasip.lectureview;
 
-class Link implements Comparable<Link> {
+import java.io.Serializable;
+
+class Link implements Comparable<Link>,Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -1069471713052847298L;
 	private String name;
 	private String url;
 	private String desc;
+	private transient Link prev;
+	private Patterns type;
+    public Link clone()
+    {
+    	Link r = new Link();
+    	r.setName(name);
+    	r.setDesc(desc);
+    	r.setPrev(prev);
+    	r.setType(type);
+    	r.setUrl(url);
+    	return r;
+    }
+    @Override
+    public boolean equals(Object l)
+    {
+    	if (l == null ||l.getClass() != Link.class)
+    		return false;
 
+    	String hisurl = ((Link)l).getUrl();
+    	if (hisurl == null)
+    		return url == null;
+    	
+    	return hisurl.equals(url);
+    }
+    
+	public void setType(Patterns t)
+	{
+		type = t;
+	}
+	public boolean hasType(Patterns t)
+	{
+		if (t == null)
+		{
+			if (type == null)
+				return true;
+			return false;
+		}
+		
+		return t.equals(type);
+	}
+	public Link getPrev()
+	{
+		return prev;
+	}
+	public void setPrev(Link l)
+	{
+		prev = l;
+	}
+	public void setType(int t)
+	{
+		type = Patterns.fromInt(t);
+	}
+	public Patterns getType()
+	{
+		return type;
+	}
+	public int getIntType()
+	{
+		if (type == null)
+			return -1;
+		return type.getType();
+	}
 	public String getDesc() {
 		return desc;
 	}
@@ -44,6 +111,7 @@ class Link implements Comparable<Link> {
 
 	public String toString() {
 		return name;
+		//return "Url: " + url + " - " + this.getIntType();
 	}
 
 	@Override

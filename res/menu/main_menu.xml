@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu
   xmlns:android="http://schemas.android.com/apk/res/android">
-<item android:visible="true" android:enabled="true" android:checked="false" android:checkable="true" android:alphabeticShortcut="P" android:numericShortcut="0" android:menuCategory="system" android:title="Enable FLV" android:id="@+id/enableflv" android:icon="@android:drawable/button_onoff_indicator_off"></item>
+<item android:checked="false" android:checkable="true" android:alphabeticShortcut="P" android:numericShortcut="0" android:menuCategory="system" android:title="Enable FLV" android:id="@+id/enableflv" android:icon="@android:drawable/button_onoff_indicator_off" android:enabled="false" android:visible="false"></item>
 <item android:title="Set as default" android:id="@+id/setasdefault" android:enabled="true" android:menuCategory="system" android:checkable="true" android:visible="true" android:checked="false" android:icon="@android:drawable/button_onoff_indicator_on"></item>
+
+<item android:id="@+id/enablerss" android:title="Enable RSS" android:enabled="true" android:icon="@android:drawable/button_onoff_indicator_off" android:visible="false"></item>
 </menu>
