@@ -17,9 +17,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 public class WebFetcher {
-	public static HashMap<Link,ArrayList> downloads = new HashMap<Link,Date>(); //TODO
-	public static HashMap<Link,Date> lastDl = new HashMap<Link,Date>(); //TODO
-	
 	private static final String BANNED_TOPICS[] = {
 			"art-architecture/category:66", "business/category:173",
 			"business/category:161", "business/category:200",
@@ -141,30 +138,8 @@ public class WebFetcher {
 		}
 
 	}
+
 	public static String fetch(ArrayList<Link> currentView, Link currLink)
-	{
-		Date lastFetch = lastDl.get(currLink);
-		if (lastFetch > NOW-5Min) //TODO {
-		{
-			currentView.clear();
-			currentView.fill(download.get(currLink));
-			return null;
-		}
-		Date d = WebFetcher.getLastUpdate(currLink.getUrl());
-		if (lastFetch > d)
-		{
-			currentView.clear();
-			currentView.fill(download.get(currLink));
-			return null;
-		}
-		fetchNew(currentView,currLink);
-		
-		downloads.put(currLink,currentView.clone()); //TODO
-		lastDl.put(currLink,NOW); //TODO, Make unique!
-		return null;
-	}
-	
-	public static String fetchNew(ArrayList<Link> currentView, Link currLink)
 			throws ToastException {
 		String data = WebFetcher.getUrlData(currLink.getUrl());
 		switch (currLink.getType()) {
@@ -184,7 +159,6 @@ public class WebFetcher {
 			throw new RuntimeException("fetch cannot be called for "
 					+ currLink.getType());
 		}
-		
-		
+		return null;
 	}
 }
