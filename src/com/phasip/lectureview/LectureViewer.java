@@ -3,6 +3,7 @@ package com.phasip.lectureview;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,6 +41,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 	private static final String TAB_BROWSE = "browse";
 	private static final String TAB_FIND = "find";
 	private static final String STORE_LAST = "last";
+	private static final String STORE_CACHE = "cache";
 	private static final String STORE_FAV = "fav";
 	private static final String STORE_VERSION = "VERSION";
 	private static final String STORE_FLV = "playflv";
@@ -204,7 +206,9 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 	protected void onPause() {
 		super.onPause();
 		ArrayList<Link> l = favList.getList();
-		storeArray(l, STORE_FAV);
+		storeObject(l, STORE_FAV);
+		storeObject(WebFetcher.linkdata,STORE_CACHE);
+		//Log.d(APP_NAME, "Saved cached data: " + WebFetcher.linkdata.size());
 	}
 
 	public Link getListItem(ArrayList<Link> list, int pos) {
@@ -338,7 +342,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		final Link loadUrl = (Link) parent.getItemAtPosition(position);
 		// Log.d(APP_NAME, APP_NAME + " Loading url: " + loadUrl.getUrl()
 		// + " id: " + loadUrl.getIntType());
-		if (loadUrl.getType() != Patterns.PLAY)
+		if (loadUrl.getType() != Patterns.PLAY && loadUrl.getType() != Patterns.RETRY)
 			tabs.setCurrentTabByTag(TAB_BROWSE);
 		showMenu(loadUrl); // Yes, check the
 	}
@@ -408,8 +412,10 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		flvPlayback = true; // settings.getBoolean(STORE_FLV, false);
 		rssPlayback = settings.getBoolean(STORE_RSS, false);
 		version = settings.getInt(STORE_VERSION, -1);
-
-		Link l = linkFromFile(STORE_LAST);
+		
+		WebFetcher.linkdata =  webFetchFromFile(STORE_CACHE);
+		//Log.d(APP_NAME, "Loaded cached data: " + WebFetcher.linkdata.size());
+		Link l = linkchainFromFile(STORE_LAST);
 		if (l != null)
 			currLink = l;
 		ArrayList<Link> f = favList.getList();
@@ -430,12 +436,23 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 	@Override
 	public void onBackPressed() {
 		if (currLink.getPrev() == null) {
+			if (!currLink.hasType(Patterns.SUBJECTS))
+			{
+				//This is weird, reset currlink!
+				currLink = new Link();
+				currLink.setType(Patterns.SUBJECTS);
+				currLink.setUrl(MAIN_URL + "/subjects");
+				if (!storeLink(currLink, STORE_LAST)) {
+					Log.d(APP_NAME, "Fails to save last location");
+				}
+			}
 			this.finish();
 			return;
 		}
 		currLink = currLink.getPrev();
 		showMenu(currLink);
 	}
+
 
 	@Override
 	public boolean onSearchRequested() {
@@ -447,12 +464,14 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 	}
 
 	private void showMenu(Link url) {
+		WebLogger.upload_log("ShowMenu url: " +  url.getUrl() + " name: " + url.getName() + " desc: " + url.getDesc() + " type: " + url.getIntType());
+
 		// Log.d(APP_NAME, APP_NAME + " showMenu, id: " + url.getIntType()
 		// + " url: " + url.getUrl());
 		url = url.clone();
 		// If clicking Link entry with url "retry", try to reload stuff.
 		if (url.hasType(Patterns.RETRY)) {
-			url = currLink;
+			url = currLink.clone();
 		} else if (!currLink.equals(url)) {
 			if (currLink.hasType(Patterns.SEARCH)) // We don't want searches to
 				// be redone when pressing
@@ -633,7 +652,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		return true;
 	}
 
-	private Link linkFromFile(String filename) {
+	private Link linkchainFromFile(String filename) {
 		ArrayList<Link> l;
 		try {
 			l = fromFile(filename);
@@ -654,7 +673,28 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		}
 		return b;
 	}
-
+	private HashMap<Link,Pair<Long,ArrayList<Link>>> webFetchFromFile(String filename) {
+		try {
+			ObjectInputStream ois;
+			FileInputStream fos = openFileInput(filename);
+			ois = new ObjectInputStream(fos);
+			@SuppressWarnings("unchecked")
+			HashMap<Link,Pair<Long,ArrayList<Link>>> ret = (HashMap<Link,Pair<Long,ArrayList<Link>>>) ois.readObject();
+			ois.close();
+			return ret;
+		} catch (ClassCastException e) {
+			shortToast("We fail to load stored pages");
+		} catch (StreamCorruptedException e) {
+			shortToast("We fail to load stored pages");
+		} catch (OptionalDataException e) {
+			shortToast("We fail to load stored pages");
+		} catch (ClassNotFoundException e) {
+			shortToast("We fail to load stored pages");
+		} catch (IOException e) {
+			Log.d(APP_NAME, "webFetchFromFile", e);
+		}
+		return new HashMap<Link,Pair<Long,ArrayList<Link>>>();
+	}
 	@SuppressWarnings("unchecked")
 	private ArrayList<Link> fromFile(String fileName) throws ToastException {
 		try {
@@ -684,10 +724,10 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 			put.add(l);
 			l = l.getPrev();
 		}
-		return storeArray(put, filename);
+		return storeObject(put, filename);
 	}
 
-	private boolean storeArray(ArrayList<Link> o, String fileName) {
+	private boolean storeObject(Object o, String fileName) {
 		try {
 			FileOutputStream fos = openFileOutput(fileName,
 					Context.MODE_PRIVATE);
@@ -775,7 +815,13 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 				retryLink.setType(Patterns.RETRY);
 				currentView.add(retryLink);
 			}
-
+			if (currentView.isEmpty()) {
+				Link retryLink = new Link(
+						"No Results, Press here to retry", "retry");
+				retryLink.setType(Patterns.RETRY);
+				currentView.add(retryLink);
+			}
+			
 			currentList.notifyChange();
 		}
 	}

@@ -12,6 +12,7 @@ class Link implements Comparable<Link>,Serializable {
 	private String desc;
 	private transient Link prev;
 	private Patterns type;
+	
     public Link clone()
     {
     	Link r = new Link();
@@ -22,23 +23,50 @@ class Link implements Comparable<Link>,Serializable {
     	r.setUrl(url);
     	return r;
     }
-    @Override
-    public boolean equals(Object l)
-    {
-    	if (l == null ||l.getClass() != Link.class)
-    		return false;
-
-    	String hisurl = ((Link)l).getUrl();
-    	if (hisurl == null)
-    		return url == null;
-    	
-    	return hisurl.equals(url);
-    }
+ 
     
 	public void setType(Patterns t)
 	{
 		type = t;
 	}
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((url == null) ? 0 : url.hashCode());
+		return result;
+	}
+	  /* @Override
+	    public boolean equals(Object l)
+	    {
+	    	if (l == null ||l.getClass() != Link.class)
+	    		return false;
+
+	    	String hisurl = ((Link)l).getUrl();
+	    	if (hisurl == null)
+	    		return url == null;
+	    	
+	    	return hisurl.equals(url);
+	    }*/
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Link other = (Link) obj;
+		if (url == null) {
+			if (other.url != null)
+				return false;
+		} else if (!url.equals(other.url))
+			return false;
+		return true;
+	}
+
+
 	public boolean hasType(Patterns t)
 	{
 		if (t == null)
@@ -102,7 +130,7 @@ class Link implements Comparable<Link>,Serializable {
 	public Link(String name, String url) {
 		this(name,url,null);
 	}
-	
+
 	public Link(String name, String url,String desc) {
 		this.name = name;
 		this.url = url;
