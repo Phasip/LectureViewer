@@ -464,7 +464,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 	}
 
 	private void showMenu(Link url) {
-		WebLogger.upload_log("ShowMenu url: " +  url.getUrl() + " name: " + url.getName() + " desc: " + url.getDesc() + " type: " + url.getIntType());
+		//WebLogger.upload_log("ShowMenu url: " +  url.getUrl() + " name: " + url.getName() + " desc: " + url.getDesc() + " type: " + url.getIntType());
 
 		// Log.d(APP_NAME, APP_NAME + " showMenu, id: " + url.getIntType()
 		// + " url: " + url.getUrl());

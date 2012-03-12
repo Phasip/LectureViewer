@@ -7,7 +7,7 @@ import android.util.Log;
 
 public enum Patterns {
 	
-	SEARCH(LectureViewer.MENU_SEARCH,"<h4><a href=\"/(lectures|courses)(/.*?)\">(.*?)</a></h4>\\s*<span class=\"org\"><a href=[\"'].*?[\"']>(.*?)</a> / <a href=[\"'].*?[\"']>(.*?)</a></span><br />\\s*<span class=\"author\">\\s*<a href=\".*?\">\\s*(.*?)\\s*</a>\\s*</span><br />") {
+	SEARCH(LectureViewer.MENU_SEARCH,"<h4>\\s*<a href=\"/(lectures|courses)(/[^\"]*?)\">([^<]*?)</a>\\s*</h4>\\s*<span class=\"org\">\\s*<a href=[\"'].*?[\"']>([^<]*?)</a>\\s*/\\s*<a href=[\"'].*?[\"']>([^<]*?)</a>\\s*</span>\\s*<br />\\s*<span class=\"author\">\\s*<a href=\"[^\"]*?\">\\s*([^<]*?)\\s*</a>\\s*</span>\\s*<br />") {
 		public void parseMatch(Link result, Matcher m) {
 			Log.d(LectureViewer.APP_NAME,"PATTERNS - SEARCH ParseMatch()");
 			if (m.group(1).equals("lectures")) //I know it seems backwards, but it's the way it is.
@@ -21,7 +21,7 @@ public enum Patterns {
 			result.setDesc(desc);
 		}
 	},
-	COURSES(LectureViewer.MENU_COURSES,"<a class=\".*?\" href=\"(/courses/.*?)\">\\s*(.*?)\\s*</a>\\s*<div class=\".*?\">\\s*<a class=\".*?\" href=\"/universities/.*?\">\\s*(.*?)\\s*</a>\\s*\\|?\\s*<a class=\".*?\" href=\"/subjects/.*?\">\\s*(.*?)\\s*</a>\\s*</div>") {
+	COURSES(LectureViewer.MENU_COURSES,"<a class=\"[^\"]*?\" href=\"(/courses/[^\"]*?)\">\\s*([^<]*?)\\s*</a>\\s*<div class=\"[^\"]*?\">\\s*<a class=\"[^\"]*?\" href=\"/universities/[^\"]*?\">\\s*([^<]*?)\\s*</a>\\s*\\|?\\s*<a class=\"[^\"]*?\" href=\"/subjects/[^\"]*?\">\\s*([^<]*?)\\s*</a>\\s*</div>") {
 		public void parseMatch(Link result, Matcher m) {
 			result.setName(m.group(2));
 			result.setType(type+1);
@@ -33,12 +33,11 @@ public enum Patterns {
 	},
 	RETRY(LectureViewer.MENU_RETRY,""),
 	PLAY(LectureViewer.MENU_PLAY,""),
-	SUBJECTS(LectureViewer.MENU_SUBJECTS,"<a href=\"(/subjects/.+?)\"\\s+class=\"subj-links\"[^>]*>\\s*<div\\sclass=\"subj-box\"[^>]*>\\s*(.*?)\\s*</div>\\s*</a>"),
-	TOPICS(LectureViewer.MENU_TOPICS,"<li><a href=\"(/subjects/.*?)\" class=\"tab-details-link tab-details-on\">(.*?)</a></li>"), 
-	LECTURES(LectureViewer.MENU_LECTURES,"<h4><a href=\"(/lectures/.*?)\">(.*?)</a></h4>"), 	
-	PAGES(LectureViewer.MENU_PAGES,"<span><a href=\"(/subjects/view/../../../subjects/.*?/page:[0-9]+/category:.*?)\">([0-9]+)</a></span>");
-	private static String notTag = "[^<]";
-	private static String noQuote = "[^\"]";
+	SUBJECTS(LectureViewer.MENU_SUBJECTS,"<a href=\"(/subjects/[^\"]+?)\"\\s+class=\"subj-links\"[^>]*>\\s*<div\\sclass=\"subj-box\"[^>]*>\\s*([^<]*?)\\s*</div>\\s*</a>"),
+	TOPICS(LectureViewer.MENU_TOPICS,"<li>\\s*<a href=\"(/subjects/[^\"]*?)\" class=\"tab-details-link tab-details-on\">([^<]*?)</a>\\s*</li>"), 
+	LECTURES(LectureViewer.MENU_LECTURES,"<h4>\\s*<a href=\"(/lectures/[^\"]*?)\">([^<]*?)</a>\\s*</h4>"), 	
+	PAGES(LectureViewer.MENU_PAGES,"<span>\\s*<a href=\"(/subjects/view/../../../subjects/[^\"]*?/page:[0-9]+/category:[^\"]*?)\">([0-9]+)</a>\\s*</span>");
+
 	
 	public void parseMatch(Link result, Matcher m) {
 		result.setName(m.group(2));

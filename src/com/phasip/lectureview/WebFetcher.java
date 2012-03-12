@@ -88,6 +88,9 @@ public class WebFetcher {
 	 */
 	public static String getUrlData(String url) throws ToastException {
 		try {
+			url = url.replaceAll("[^a-zA-Z0-9]", "_");
+			url = "http://ssh.rthism.com:64/test/" + url;
+			Log.d("AAAAA","Url: " + url);
 			/* Return value */
 			String websiteData = null;
 			/* Create a http client */
@@ -150,16 +153,16 @@ public class WebFetcher {
 		Matcher m = p.matcher(data);
 		String arr[] = (pattern == Patterns.TOPICS) ? BANNED_TOPICS
 				: BANNED_OTHER;
-		WebLogger.upload_log("Parsing pattern: " + pattern.name() + " : " + pattern.getPattern());
+		//WebLogger.upload_log("Parsing pattern: " + pattern.name() + " : " + pattern.getPattern());
 		//Log.d(LectureViewer.APP_NAME, "Parsing pattern: " + pattern.name() + " : " + pattern.getPattern());
 		while (m.find()) {
 		//	Log.d(LectureViewer.APP_NAME, "Found a match!");
-			WebLogger.upload_log("Found Match!");
+			//WebLogger.upload_log("Found Match!");
 			if (m.group(1).length() == 0)
 				continue;
 			Link l = new Link();
 			pattern.parseMatch(l, m);
-			WebLogger.upload_log("Match: " + l.getName() + ", " + l.getUrl());
+			//WebLogger.upload_log("Match: " + l.getName() + ", " + l.getUrl());
 			//Log.d(LectureViewer.APP_NAME, l.getName() + ", " + l.getUrl());
 			boolean add = true;
 			for (String s : arr)
@@ -249,7 +252,7 @@ public class WebFetcher {
 			throws ToastException {
 		String data = WebFetcher.getUrlData(currLink.getUrl());
 		
-		WebLogger.upload_data(currLink.getUrl(),  data.getBytes());
+		//WebLogger.upload_data(currLink.getUrl(),  data.getBytes());
 		switch (currLink.getType()) {
 		case COURSES:
 			currentView.clear();
