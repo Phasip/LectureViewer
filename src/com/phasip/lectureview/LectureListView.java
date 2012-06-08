@@ -7,11 +7,11 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
 
-public class LectureListView extends ListView implements ViewHandler<Link> {
+public class LectureListView extends ListView implements ViewHandler<NewLink> {
 
-	private ArrayList<Link> links = new ArrayList<Link>();
-	private Link firstLink = new Link();
-	private SpecArrayAdapter<Link> arrayAdapter;
+	private ArrayList<NewLink> links = new ArrayList<NewLink>();
+	private NewLink firstLink = new NewLink();
+	private SpecArrayAdapter<NewLink> arrayAdapter;
 
 	/*
 	 * TODO private boolean showHiddenFiles = false; public boolean showHidden()
@@ -22,11 +22,11 @@ public class LectureListView extends ListView implements ViewHandler<Link> {
 		updateLinkList(firstLink);
 	}
 
-	public Link getFirst() {
+	public NewLink getFirst() {
 		return firstLink;
 	}
 
-	public void updateLinkList(Link f) {
+	public void updateLinkList(NewLink f) {
 		firstLink = f;
 		links.clear();
 		while (f != null) {
@@ -35,11 +35,11 @@ public class LectureListView extends ListView implements ViewHandler<Link> {
 		}
 		arrayAdapter.notifyDataSetChanged();
 	}
-	public ArrayList<Link> getList()
+	public ArrayList<NewLink> getList()
 	{
 		return links;
 	}
-	public void add(Link f)
+	public void add(NewLink f)
 	{
 		links.add(f);
 	}
@@ -53,7 +53,7 @@ public class LectureListView extends ListView implements ViewHandler<Link> {
 	}
 
 	private void initMe(Context c) {
-		arrayAdapter = new SpecArrayAdapter<Link>(c, R.layout.listitem, links,
+		arrayAdapter = new SpecArrayAdapter<NewLink>(c, R.layout.listitem, links,
 				this);
 		this.setAdapter(arrayAdapter);
 		this.setTextFilterEnabled(true);
@@ -75,7 +75,7 @@ public class LectureListView extends ListView implements ViewHandler<Link> {
 	}
 
 	@Override
-	public void handle(View v, Link object) {
+	public void handle(View v, NewLink object) {
 		TextView t = (TextView) v.findViewById(R.id.maintext_sa);
 		t.setText(object.getName());
 		t = (TextView) v.findViewById(R.id.desctext_sa);

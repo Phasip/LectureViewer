@@ -1,32 +1,39 @@
 package com.phasip.lectureview;
 
+import java.net.URI;
 import java.util.regex.Matcher;
-
-import android.util.Log;
 
 
 public enum Patterns {
 	
-	SEARCH(LectureViewer.MENU_SEARCH,"<h4>\\s*<a href=\"/(lectures|courses)(/[^\"]*?)\">([^<]*?)</a>\\s*</h4>\\s*<span class=\"org\">\\s*<a href=[\"'].*?[\"']>([^<]*?)</a>\\s*/\\s*<a href=[\"'].*?[\"']>([^<]*?)</a>\\s*</span>\\s*<br />\\s*<span class=\"author\">\\s*<a href=\"[^\"]*?\">\\s*([^<]*?)\\s*</a>\\s*</span>\\s*<br />") {
-		public void parseMatch(Link result, Matcher m) {
-			Log.d(LectureViewer.APP_NAME,"PATTERNS - SEARCH ParseMatch()");
-			if (m.group(1).equals("lectures")) //I know it seems backwards, but it's the way it is.
+	SEARCH(LectureViewer.MENU_SEARCH,"<h4>\\s*<a href=\"(/(lectures|courses)/[^\"]*?)\">([^<]*?)</a>\\s*</h4>\\s*<span class=\"org\">\\s*<a href=[\"'].*?[\"']>([^<]*?)</a>\\s*/\\s*<a href=[\"'].*?[\"']>([^<]*?)</a>\\s*</span>\\s*<br />\\s*<span class=\"author\">\\s*<a href=\"[^\"]*?\">\\s*([^<]*?)\\s*</a>\\s*</span>\\s*<br />") {
+		public void parseMatch(URI orig,NewLink result, Matcher m) {
+			//Log.d(LectureViewer.APP_NAME,"PATTERNS - SEARCH ParseMatch()");
+			if (m.group(2).equals("lectures")) //I know it seems backwards, but it's the way it is.
 				result.setType(PLAY);
 			else
 				result.setType(LECTURES);
 			
 			result.setName(m.group(3));
-			result.setUrl(LectureViewer.MAIN_URL + "/" + m.group(1) +  m.group(2));
+			result.setUrl(orig, m.group(1));
 			String desc = m.group(4) + " / " + m.group(5) + " - " + m.group(6);
 			result.setDesc(desc);
 		}
 	},
-	COURSES(LectureViewer.MENU_COURSES,"<a class=\"[^\"]*?\" href=\"(/courses/[^\"]*?)\">\\s*([^<]*?)\\s*</a>\\s*<div class=\"[^\"]*?\">\\s*<a class=\"[^\"]*?\" href=\"/universities/[^\"]*?\">\\s*([^<]*?)\\s*</a>\\s*\\|?\\s*<a class=\"[^\"]*?\" href=\"/subjects/[^\"]*?\">\\s*([^<]*?)\\s*</a>\\s*</div>") {
-		public void parseMatch(Link result, Matcher m) {
-			result.setName(m.group(2));
-			result.setType(type+1);
-			result.setUrl(LectureViewer.MAIN_URL + m.group(1));
-			String desc = m.group(3) + " |	 " + m.group(4);
+	COURSES(LectureViewer.MENU_COURSES,"<a class=\"[^\"]*?\" href=\"(/(courses|lectures)/[^\"]*?)\">\\s*([^<]*?)\\s*</a>\\s*<div class=\"[^\"]*?\">\\s*<a class=\"[^\"]*?\" href=\"/universities/[^\"]*?\">\\s*([^<]*?)\\s*</a>\\s*\\|?\\s*<a class=\"[^\"]*?\" href=\"/subjects/[^\"]*?\">\\s*([^<]*?)\\s*</a>\\s*</div>") {
+		public void parseMatch(URI orig,NewLink result, Matcher m) {
+			result.setName(m.group(3));
+			String type = "";
+			if (m.group(2).equals("lectures")) {
+				result.setType(LectureViewer.MENU_PLAY);
+				type = "Lecture";
+			}
+			else {
+				result.setType(LectureViewer.MENU_LECTURES);
+				type = "Course";
+			}
+			result.setUrl(orig,m.group(1));
+			String desc =  type + "  |  " + m.group(4) + " |	 " + m.group(5);
 			//Log.d(LectureViewer.APP_NAME,LectureViewer.APP_NAME + " Listing url: " + result.getUrl() + " id: " + result.getIntType());
 			result.setDesc(desc);
 		}
@@ -34,19 +41,25 @@ public enum Patterns {
 	RETRY(LectureViewer.MENU_RETRY,""),
 	PLAY(LectureViewer.MENU_PLAY,""),
 	SUBJECTS(LectureViewer.MENU_SUBJECTS,"<a href=\"(/subjects/[^\"]+?)\"\\s+class=\"subj-links\"[^>]*>\\s*<div\\sclass=\"subj-box\"[^>]*>\\s*([^<]*?)\\s*</div>\\s*</a>"),
-	TOPICS(LectureViewer.MENU_TOPICS,"<li>\\s*<a href=\"(/subjects/[^\"]*?)\" class=\"tab-details-link tab-details-on\">([^<]*?)</a>\\s*</li>"), 
-	LECTURES(LectureViewer.MENU_LECTURES,"<h4>\\s*<a href=\"(/lectures/[^\"]*?)\">([^<]*?)</a>\\s*</h4>"), 	
-	PAGES(LectureViewer.MENU_PAGES,"<span>\\s*<a href=\"(/subjects/view/../../../subjects/[^\"]*?/page:[0-9]+/category:[^\"]*?)\">([0-9]+)</a>\\s*</span>");
-
 	
-	public void parseMatch(Link result, Matcher m) {
+	/*<li><a href="/subjects/computerscience/category" class="tab-details-link tab-details-on">All Topics</a></li>                            <li><a href="/subjects/computerscience/category/Free Video Courses" class="tab-details-link ">Free Video Courses</a></li>
+      <li><a href="/subjects/computerscience/category/Online Degrees" class="tab-details-link ">Online Degrees</a></li>
+*/
+	TOPICS(LectureViewer.MENU_TOPICS,"<li>\\s*<a href=\"(/subjects/[^\"]*?)\" class=\"[^\"]*?tab-details-link[^\"]*?\">([^<]*?)</a>\\s*</li>"),
+	
+	LECTURES(LectureViewer.MENU_LECTURES,"<h4>\\s*<a href=\"(/lectures/[^\"]*?)\">([^<]*?)</a>\\s*</h4>"), 	
+	//PAGES(LectureViewer.MENU_PAGES,"<span>\\s*<a href=\"(/subjects/view/../../../subjects/[^\"]*?/page:[0-9]+[^\"]*?)\">([0-9]+)</a>\\s*</span>"),
+	NEXTPAGE(LectureViewer.MENU_PAGES,"<a href=\"([^\"]*)\">\\s*<span class=\"[^\"]*\"\\s*>([Nn]ext\\s*[Pp]age)</span>\\s*</a>");
+	public void parseMatch(URI orig,NewLink result, Matcher m) {
 		result.setName(m.group(2));
 		//result.setType(this);
-		result.setUrl(LectureViewer.MAIN_URL + m.group(1));
+		result.setUrl(orig, m.group(1));
 		if (type < 7)
 			result.setType(type+1);
 		
 	}
+	
+	
 
 	String pattern;
 	int type;
@@ -79,7 +92,7 @@ public enum Patterns {
 		case LectureViewer.MENU_RETRY:
 			return RETRY;
 		case LectureViewer.MENU_PAGES:
-			return PAGES;
+			return NEXTPAGE;
 		}
 		throw new RuntimeException("Cannot convert from int: " + a);
 	}

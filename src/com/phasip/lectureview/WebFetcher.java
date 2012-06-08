@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -25,8 +24,8 @@ import org.apache.http.impl.cookie.DateUtils;
 import android.util.Log;
 
 public class WebFetcher {
-	public static final boolean disable_cache = true;
-	public static HashMap<Link,Pair<Long,ArrayList<Link>>> linkdata = new HashMap<Link,Pair<Long,ArrayList<Link>>> (); 
+	public static final boolean disable_cache = false;
+	public static HashMap<NewLink,Pair<Long,ArrayList<NewLink>>> linkdata = new HashMap<NewLink,Pair<Long,ArrayList<NewLink>>> (); 
 	private static final String BANNED_TOPICS[] = {
 			"art-architecture/category:66", "business/category:173",
 			"business/category:161", "business/category:200",
@@ -43,6 +42,7 @@ public class WebFetcher {
 			"courses/maryland-online-bachelors-english",
 			"subjects/online-bachelors-degrees", "subjects/courses-for-credit","subjects/CFC",
 			"subjects/online-masters-degrees",
+			"subjects/teachertraining",
 			"subjects/online-professional-certificates", "subjects/writing",
 			"courses/the-unc-kenan-flagler-mba-degree-online"};
 
@@ -50,13 +50,12 @@ public class WebFetcher {
 	 * Gets data from url, throws all exceptions, Urisyntax when bad url give,
 	 * clientprotocol... not sure and io when connection error.
 	 */
-	public static Long getLastModified(String url) throws ToastException {
+	public static Long getLastModified(URI uri) throws ToastException {
 		try {
 			/* Return value */
 			/* Create a http client */
 			DefaultHttpClient client = new DefaultHttpClient();
 			/* Load the uri (http://... ) */
-			URI uri = new URI(url);
 			/* Get method, use HttpPost for post (eg login) */
 			HttpHead method = new HttpHead(uri);
 			/* Execute the query */
@@ -71,9 +70,6 @@ public class WebFetcher {
 			e.printStackTrace();
 			throw new ToastException(
 					"Exception... Your phone doesn't support http protocol...?");
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
-			throw new ToastException("Exception... Maybe the regex?");
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new ToastException("Connection error, please retry.");
@@ -86,17 +82,17 @@ public class WebFetcher {
 	 * Gets data from url, throws all exceptions, Urisyntax when bad url give,
 	 * clientprotocol... not sure and io when connection error.
 	 */
-	public static String getUrlData(String url) throws ToastException {
+	public static String getUrlData(URI uri) throws ToastException {
 		try {
-			url = url.replaceAll("[^a-zA-Z0-9]", "_");
+			/*url = url.replaceAll("[^a-zA-Z0-9]", "_");
 			url = "http://ssh.rthism.com:64/test/" + url;
-			Log.d("AAAAA","Url: " + url);
+			Log.d("AAAAA","Url: " + url);*/
 			/* Return value */
 			String websiteData = null;
 			/* Create a http client */
 			DefaultHttpClient client = new DefaultHttpClient();
 			/* Load the uri (http://... ) */
-			URI uri = new URI(url);
+			//Log.d(LectureViewer.APP_NAME,"WE GOT THIS URL:" + uri.toString());
 			/* Get method, use HttpPost for post (eg login) */
 			HttpGet method = new HttpGet(uri);
 			/* Execute the query */
@@ -109,9 +105,6 @@ public class WebFetcher {
 			e.printStackTrace();
 			throw new ToastException(
 					"Exception... Your phone doesn't support http protocol...?");
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
-			throw new ToastException("Exception... Maybe the regex?");
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new ToastException("Connection error, please retry.");
@@ -143,10 +136,14 @@ public class WebFetcher {
 		return sb.toString();
 	}
 
-	public static void loadPattern(Link prev, String data,
-			ArrayList<Link> result) {
+	public static void loadPattern(NewLink prev, String data,ArrayList<NewLink> result) {
 		if (data == null)
 			return;
+		if (prev == null || prev.getUrl() == null) {
+		//	Exception e = new Exception();
+		//	Log.d(LectureViewer.APP_NAME,"loadPattern(3) - prevNull",e);
+			return;
+		}
 		// If prev is null we should throw an error!
 		Patterns pattern = prev.getType();
 		Pattern p = Pattern.compile(pattern.getPattern(), Pattern.MULTILINE);
@@ -154,19 +151,19 @@ public class WebFetcher {
 		String arr[] = (pattern == Patterns.TOPICS) ? BANNED_TOPICS
 				: BANNED_OTHER;
 		//WebLogger.upload_log("Parsing pattern: " + pattern.name() + " : " + pattern.getPattern());
-		//Log.d(LectureViewer.APP_NAME, "Parsing pattern: " + pattern.name() + " : " + pattern.getPattern());
+		Log.d(LectureViewer.APP_NAME, "Parsing pattern: " + pattern.name() + " : " + pattern.getPattern());
 		while (m.find()) {
-		//	Log.d(LectureViewer.APP_NAME, "Found a match!");
+			Log.d(LectureViewer.APP_NAME, "Found a match!");
 			//WebLogger.upload_log("Found Match!");
 			if (m.group(1).length() == 0)
 				continue;
-			Link l = new Link();
-			pattern.parseMatch(l, m);
+			NewLink l = new NewLink();
+			pattern.parseMatch(prev.getUrl(),l, m);
 			//WebLogger.upload_log("Match: " + l.getName() + ", " + l.getUrl());
-			//Log.d(LectureViewer.APP_NAME, l.getName() + ", " + l.getUrl());
+			Log.d(LectureViewer.APP_NAME, l.getName() + ", " + l.getUrl());
 			boolean add = true;
 			for (String s : arr)
-				if (l.getUrl().endsWith(s)) {
+				if (l.getUrl().toString().endsWith(s)) {
 					add = false;
 					break;
 				}
@@ -180,17 +177,23 @@ public class WebFetcher {
 		}
 	}
 
-	public static void parseCourses(Link parent, String data,
-			ArrayList<Link> list) throws ToastException {
-		ArrayList<Link> pages = new ArrayList<Link>();
-		Link l = new Link();
-		l.setType(Patterns.PAGES);
-
-		loadPattern(l, data, pages);
+	public static void parseCourses(NewLink parent, String data,
+			ArrayList<NewLink> list) throws ToastException {
+		ArrayList<NewLink> page = new ArrayList<NewLink>();
+		NewLink l = parent.clone();
+		l.setType(Patterns.NEXTPAGE);
+		loadPattern(l, data, page);
 		loadPattern(parent, data, list);
-		for (int i = 0; i < pages.size() / 2; i++) {
-			data = WebFetcher.getUrlData(pages.get(i).getUrl());
-			loadPattern(parent, data, list);
+		while (!page.isEmpty()) {
+			//Log.d(LectureViewer.APP_NAME,"Loading: " + page.get(0).getUrl());
+			String data2 = WebFetcher.getUrlData(page.get(0).getUrl());
+			//Log.d(LectureViewer.APP_NAME,"Reading patterns");
+			//Log.d(LectureViewer.APP_NAME,data2);
+			
+			loadPattern(parent, data2, list);
+
+			page.clear();
+			loadPattern(l, data2, page);
 		}
 
 	}
@@ -199,20 +202,20 @@ public class WebFetcher {
 		return System.currentTimeMillis() / 1000L;
 	}
 	
-	@SuppressWarnings("unchecked")
-	public static void fetch(ArrayList<Link> currentView, Link currLink) throws ToastException
+	@SuppressWarnings({ "unchecked", "unused" })
+	public static void fetch(ArrayList<NewLink> currentView, NewLink currLink) throws ToastException
 	{
 		if (disable_cache == true) {
 			fetchPage(currentView,currLink);
 			return;
 		}
 		
-		Pair<Long,ArrayList<Link>> linkinfo = linkdata.get(currLink);
+		Pair<Long,ArrayList<NewLink>> linkinfo = linkdata.get(currLink);
 		
 		if (linkinfo == null) {
 			fetchPage(currentView,currLink);
 			if (!currentView.isEmpty()) {
-				linkinfo = new Pair<Long,ArrayList<Link>>(getTime(),(ArrayList<Link>)currentView.clone());
+				linkinfo = new Pair<Long,ArrayList<NewLink>>(getTime(),(ArrayList<NewLink>)currentView.clone());
 				linkdata.put(currLink, linkinfo);
 			}
 			return;
@@ -228,7 +231,7 @@ public class WebFetcher {
 				//Reset list, and reset lastFetch on data
 				currentView.clear();
 				currentView.addAll(linkinfo.getRight());
-				linkinfo = new Pair<Long,ArrayList<Link>>(getTime(),(ArrayList<Link>)linkinfo.getRight().clone());
+				linkinfo = new Pair<Long,ArrayList<NewLink>>(getTime(),(ArrayList<NewLink>)linkinfo.getRight().clone());
 				linkdata.put(currLink, linkinfo);
 				return;
 			}
@@ -237,7 +240,7 @@ public class WebFetcher {
 			}
 			
 			if (!currentView.isEmpty()) {
-				linkinfo = new Pair<Long,ArrayList<Link>>(getTime(),(ArrayList<Link>)currentView.clone());
+				linkinfo = new Pair<Long,ArrayList<NewLink>>(getTime(),(ArrayList<NewLink>)currentView.clone());
 				linkdata.put(currLink, linkinfo);
 			}
 			return;
@@ -248,7 +251,7 @@ public class WebFetcher {
 		currentView.addAll(linkinfo.getRight());
 		return;
 	}
-	public static void fetchPage(ArrayList<Link> currentView, Link currLink)
+	public static void fetchPage(ArrayList<NewLink> currentView, NewLink currLink)
 			throws ToastException {
 		String data = WebFetcher.getUrlData(currLink.getUrl());
 		

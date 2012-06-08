@@ -40,11 +40,13 @@ import android.widget.TextView.OnEditorActionListener;
 public class LectureViewer extends Activity implements OnItemClickListener {
 	private static final String TAB_BROWSE = "browse";
 	private static final String TAB_FIND = "find";
-	private static final String STORE_LAST = "last";
-	private static final String STORE_CACHE = "cache";
-	private static final String STORE_FAV = "fav";
+	private static final String OLD_STORE_LAST = "last";
+	private static final String STORE_LAST = "last_v2";
+	private static final String OLD_STORE_CACHE = "cache";
+	private static final String STORE_CACHE = "cache_v2";
+	private static final String STORE_FAV = "fav_v2";
+	private static final String OLD_STORE_FAV = "fav";
 	private static final String STORE_VERSION = "VERSION";
-	private static final String STORE_FLV = "playflv";
 	private static final String STORE_RSS = "loadrss";
 	public static final String APP_NAME = "Lecture Viewer";
 	/* Our fun constants... not much really */
@@ -65,7 +67,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 	public final static int MENU_RETRY = 6;
 	public final static int MENU_PAGES = 7;
 	private static final int DIALOG_PROCESS = 2;
-	private String postMsg = "";
+	private MarketDialog postMsg = null;
 
 	/* All regex patterns used to find the matches */
 
@@ -85,7 +87,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		PATTERNS[PATTERN_YOUTUBE] = "<textarea id=\"lecture-embed\" readonly=\"readonly\"><div><embed src=\"http://www.youtube.com/v/(.+?)\" type=\"application/x-shockwave-flash\"";
 	}
 	/* The array storing the info about the current items in the datalist */
-	// private ArrayList<Link> currentView = new ArrayList<Link>();
+	// private ArrayList<NewLink> currentView = new ArrayList<NewLink>();
 	/* Progressbar */
 
 	/* Where we are in the browsing */
@@ -94,8 +96,8 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 	// private StorableStringList lastUrl;
 	/* Current url */
 	// private String currUrl = "";
-	/* Current Link */
-	private Link currLink = null;
+	/* Current NewLink */
+	private NewLink currLink = null;
 	/* Shall we play a flvmovie */
 	private boolean flvPlayback = false;
 	private boolean rssPlayback = false;
@@ -139,7 +141,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		Patterns tmp = Patterns.COURSES;
 		if (v.getId() == R.id.browseList || v.getId() == R.id.findList) {
 			AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
-			ArrayList<Link> list = browseList.getList();
+			ArrayList<NewLink> list = browseList.getList();
 
 			if (v.getId() == R.id.findList)
 				list = findList.getList();
@@ -162,7 +164,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 
 		if (v.getId() == R.id.favList) {
 			AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
-			ArrayList<Link> list = favList.getList();
+			ArrayList<NewLink> list = favList.getList();
 			String name = "ERROR";
 			if (info.position >= 0 && info.position < list.size()) {
 				name = list.get(info.position).getName();
@@ -177,7 +179,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		}
 	}
 
-	public void addFav(Link l) {
+	public void addFav(NewLink l) {
 		if (l == null) {
 			shortToast(R.string.err_null_fav);
 			return;
@@ -185,7 +187,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		l = l.clone();
 
 		String desc = l.getDesc();
-		ArrayList<Link> fav = favList.getList();
+		ArrayList<NewLink> fav = favList.getList();
 		if ((desc == null || desc.length() == 0) && currLink != null)
 			l.setDesc(currLink.getName());
 
@@ -198,20 +200,20 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 
 	}
 
-	public void delFav(Link l) {
-		ArrayList<Link> f = favList.getList();
+	public void delFav(NewLink l) {
+		ArrayList<NewLink> f = favList.getList();
 		f.remove(l);
 	}
 
 	protected void onPause() {
 		super.onPause();
-		ArrayList<Link> l = favList.getList();
+		ArrayList<NewLink> l = favList.getList();
 		storeObject(l, STORE_FAV);
 		storeObject(WebFetcher.linkdata,STORE_CACHE);
 		//Log.d(APP_NAME, "Saved cached data: " + WebFetcher.linkdata.size());
 	}
 
-	public Link getListItem(ArrayList<Link> list, int pos) {
+	public NewLink getListItem(ArrayList<NewLink> list, int pos) {
 		if (pos < 0 || pos >= list.size()) {
 			shortToast("Index out of bounds error?...");
 			return null;
@@ -224,8 +226,8 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 	public boolean onContextItemSelected(MenuItem item) {
 		AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item
 				.getMenuInfo();
-		ArrayList<Link> list;
-		Link l;
+		ArrayList<NewLink> list;
+		NewLink l;
 		switch (item.getItemId()) {
 		case ID_ADDRSS_BROWSE:
 			l = getListItem(browseList.getList(), info.position);
@@ -304,7 +306,12 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 				if (actionId == EditorInfo.IME_ACTION_SEARCH) {
 					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 					imm.hideSoftInputFromWindow(findText.getWindowToken(), 0);
-					findCourses(findText.getText());
+					try {
+						findCourses(findText.getText());
+					} catch (URISyntaxException e) {
+						shortToast("Invalid search string, please email me with details");
+
+					}
 
 				}
 				return true;
@@ -317,7 +324,11 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 			public void onClick(View v) {
 				InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 				imm.hideSoftInputFromWindow(findText.getWindowToken(), 0);
-				findCourses(findText.getText());
+				try {
+					findCourses(findText.getText());
+				} catch (URISyntaxException e) {
+					shortToast("Invalid search string, please email me with details");
+				}
 
 			}
 
@@ -326,11 +337,10 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		versionCheck(); // Ugly, but also calls showmenu.
 	}
 
-	public void findCourses(CharSequence find) {
+	public void findCourses(CharSequence find) throws URISyntaxException {
 
-		Link l = new Link();
-		l
-				.setUrl("http://academicearth.org/lectures/search/"
+		NewLink l = new NewLink();
+		l.setUrl("http://academicearth.org/lectures/search/"
 						+ find
 						+ "/search-within:All/search-universities:All/search-subjects:All/search-rating:-1/search-sort:Relevancy/");
 		l.setType(Patterns.SEARCH);
@@ -339,7 +349,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 
 	public void onItemClick(AdapterView<?> parent, View view, int position,
 			long id) {
-		final Link loadUrl = (Link) parent.getItemAtPosition(position);
+		final NewLink loadUrl = (NewLink) parent.getItemAtPosition(position);
 		// Log.d(APP_NAME, APP_NAME + " Loading url: " + loadUrl.getUrl()
 		// + " id: " + loadUrl.getIntType());
 		if (loadUrl.getType() != Patterns.PLAY && loadUrl.getType() != Patterns.RETRY)
@@ -364,12 +374,16 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 							final SharedPreferences settings = getPreferences(0);
 							SharedPreferences.Editor e = settings.edit();
 							e.putInt(STORE_VERSION, myVer);
+							//CLEAR OLD CACHE!!! XXX TODO
+							WebFetcher.linkdata = new HashMap<NewLink,Pair<Long,ArrayList<NewLink>>>();
 							e.commit();
+							
 							showMenu();
 						}
 					});
 			AlertDialog alert = builder.create();
 			alert.show();
+			
 		} else {
 			showMenu();
 		}
@@ -404,25 +418,30 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 	}
 
 	private void loadPreferences() {
-		currLink = new Link();
+		currLink = new NewLink();
 		currLink.setType(Patterns.SUBJECTS);
-		currLink.setUrl(MAIN_URL + "/subjects");
+		setStaticUrl(currLink,MAIN_URL + "/subjects");
+		
 		final SharedPreferences settings = getPreferences(0);
 		// TODO: FLV PLAYBACK ALWAYS ENABLED
 		flvPlayback = true; // settings.getBoolean(STORE_FLV, false);
 		rssPlayback = settings.getBoolean(STORE_RSS, false);
 		version = settings.getInt(STORE_VERSION, -1);
 		
+		//TODO, Save info about removed and dont delete each time
+		deleteFile(OLD_STORE_CACHE);
+		
 		WebFetcher.linkdata =  webFetchFromFile(STORE_CACHE);
 		//Log.d(APP_NAME, "Loaded cached data: " + WebFetcher.linkdata.size());
-		Link l = linkchainFromFile(STORE_LAST);
+		
+		NewLink l = linkchainFromFile(STORE_LAST,OLD_STORE_LAST);
 		if (l != null)
 			currLink = l;
-		ArrayList<Link> f = favList.getList();
+		ArrayList<NewLink> f = favList.getList();
 		f.clear();
-		ArrayList<Link> fa;
+		ArrayList<NewLink> fa;
 		try {
-			fa = fromFile(STORE_FAV);
+			fa = fromFile(STORE_FAV,OLD_STORE_FAV);
 			if (fa != null)
 				f.addAll(fa);
 
@@ -433,15 +452,23 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 
 	}
 
+	public void setStaticUrl(NewLink l,String url) {
+		try {
+			l.setUrl(url);
+		} catch (URISyntaxException e1) {
+			shortToast("Error 93, please email me with android version, phone model, etc");
+		}
+		
+	}
 	@Override
 	public void onBackPressed() {
 		if (currLink.getPrev() == null) {
 			if (!currLink.hasType(Patterns.SUBJECTS))
 			{
 				//This is weird, reset currlink!
-				currLink = new Link();
+				currLink = new NewLink();
 				currLink.setType(Patterns.SUBJECTS);
-				currLink.setUrl(MAIN_URL + "/subjects");
+				setStaticUrl(currLink,MAIN_URL + "/subjects");
 				if (!storeLink(currLink, STORE_LAST)) {
 					Log.d(APP_NAME, "Fails to save last location");
 				}
@@ -463,13 +490,13 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		return false; // don't go ahead and show the search box
 	}
 
-	private void showMenu(Link url) {
+	private void showMenu(NewLink url) {
 		//WebLogger.upload_log("ShowMenu url: " +  url.getUrl() + " name: " + url.getName() + " desc: " + url.getDesc() + " type: " + url.getIntType());
 
 		// Log.d(APP_NAME, APP_NAME + " showMenu, id: " + url.getIntType()
 		// + " url: " + url.getUrl());
 		url = url.clone();
-		// If clicking Link entry with url "retry", try to reload stuff.
+		// If clicking NewLink entry with url "retry", try to reload stuff.
 		if (url.hasType(Patterns.RETRY)) {
 			url = currLink.clone();
 		} else if (!currLink.equals(url)) {
@@ -501,14 +528,13 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 
 		if (loadString.length > id && id >= 0)
 			mess = loadString[id];
-
 		proccessDialog = ProgressDialog.show(LectureViewer.this, "Working...",
 				mess);
 		new DownloadHandler().execute();
 
 	}
 
-	private boolean play_rss(Link url) {
+	private boolean play_rss(NewLink url) {
 		String match = url.getUrl() + "/video.rss";
 		String type = "application/rss+xml";
 		Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -537,7 +563,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		String msg2 = res.getString(msg);
 		shortToast(msg2);
 	}
-
+	
 	/**
 	 * Reads url
 	 * 
@@ -548,9 +574,9 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 */
-
+	
 	// Maybe a bit ugly.
-	private void playMovie(String data) {
+	private String playMovie(String data) {
 
 		currLink = currLink.getPrev();
 		int currPattern = PATTERN_DL;
@@ -571,7 +597,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		/* If we looped trough */
 		if (currPattern > PLAY_PATTERN_END) {
 			Log.d(APP_NAME, "No play patterns found, something is wrong");
-			return;
+			return null;
 		}
 
 		String match = m.group(1);
@@ -588,55 +614,40 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 			break;
 		case PATTERN_FLASH:
 			if (match.startsWith("<div><embed src=\"\"")) {
-				postMsg = "Could not find movie to play, if this lecture has a video please report error and refer to the lecture";
-				return;
+				return "Could not find movie to play, if this lecture has a video please report error and refer to the lecture";
 			}
-			postMsg = "Could not find movie to play, if this lecture has a video please report error and refer to the lecture";
-			return;
+			return "Could not find movie to play, if this lecture has a video please report error and refer to the lecture";
 
 		}
 
 		Intent intent = new Intent(Intent.ACTION_VIEW);
 		intent.setDataAndType(Uri.parse(match), type);
 		try {
+		
 			startActivity(intent);
 		} catch (ActivityNotFoundException ex) {
 			switch (currPattern) {
 			case PATTERN_DL:
-				postMsg = "Could not find application to play video file (video/*)";
+				postMsg = new MarketDialog(this,"We fail to play video, this is usually due to lack of a good video player. I suggest you install Rockplayer Lite","com.redirectin.rockplayer.android.unified.lite","video_player_suggestion");
 				break;
 			case PATTERN_YOUTUBE:
-				postMsg = "Could not find application to play youtube clip (vnd.youtube)";
+				postMsg = new MarketDialog(this,"We fail to play video, this is usually due to lack of a good YouTube player. I suggest you install YouTube","com.google.android.youtube","youtube_player_suggestion");
 				break;
 			case PATTERN_FLV:
-				postMsg = "Could not find application to play flv clip (video/x-flv) - I recommend RockPlayer Lite";
+				postMsg = new MarketDialog(this,"We fail to play video, this is usually due to lack of a good video player. I suggest you install Rockplayer Lite","com.redirectin.rockplayer.android.unified.lite","video_player_suggestion");
 				break;
 
 			}
-			return;
+			return "Unknown play error (626)";
 		}
+		return null;
 	}
 
 	// @Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		SharedPreferences settings = getPreferences(0);
 		SharedPreferences.Editor editor = settings.edit();
-		if (item.getItemId() == R.id.enableflv) {
-			flvPlayback = !flvPlayback;
-			int icon = flvPlayback ? android.R.drawable.button_onoff_indicator_on
-					: android.R.drawable.button_onoff_indicator_off;
-			item.setIcon(icon);
-			editor.putBoolean(STORE_FLV, flvPlayback);
-
-			shortToast(flvPlayback ? R.string.flv_enabled
-					: R.string.flv_disabled);
-		} else if (item.getItemId() == R.id.setasdefault) {
-
-			if (!storeLink(currLink, STORE_LAST))
-				shortToast("Fails to set default, please retry later. If error perists, email developer");
-			else
-				shortToast(R.string.view_default);
-		} else if (item.getItemId() == R.id.enablerss) {
+		if (item.getItemId() == R.id.enablerss) {
 			rssPlayback = !rssPlayback;
 			int icon = rssPlayback ? android.R.drawable.button_onoff_indicator_on
 					: android.R.drawable.button_onoff_indicator_off;
@@ -651,21 +662,20 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		editor.commit();
 		return true;
 	}
-
-	private Link linkchainFromFile(String filename) {
-		ArrayList<Link> l;
+	private NewLink linkchainFromFile(String filename,String oldFilename) {
+		ArrayList<NewLink> l;
 		try {
-			l = fromFile(filename);
+				l = fromFile(filename,oldFilename);
 		} catch (ToastException e) {
 			shortToast(e.getMessage());
-			l = null;
+			return null;
 		}
 
 		if (l == null)
 			return null;
 
-		Link a = null;
-		Link b = null;
+		NewLink a = null;
+		NewLink b = null;
 		for (int i = 0; i < l.size(); i++) {
 			b = l.get(i);
 			b.setPrev(a);
@@ -673,13 +683,13 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		}
 		return b;
 	}
-	private HashMap<Link,Pair<Long,ArrayList<Link>>> webFetchFromFile(String filename) {
+	private HashMap<NewLink,Pair<Long,ArrayList<NewLink>>> webFetchFromFile(String filename) {
 		try {
 			ObjectInputStream ois;
 			FileInputStream fos = openFileInput(filename);
 			ois = new ObjectInputStream(fos);
 			@SuppressWarnings("unchecked")
-			HashMap<Link,Pair<Long,ArrayList<Link>>> ret = (HashMap<Link,Pair<Long,ArrayList<Link>>>) ois.readObject();
+			HashMap<NewLink,Pair<Long,ArrayList<NewLink>>> ret = (HashMap<NewLink,Pair<Long,ArrayList<NewLink>>>) ois.readObject();
 			ois.close();
 			return ret;
 		} catch (ClassCastException e) {
@@ -693,15 +703,26 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		} catch (IOException e) {
 			Log.d(APP_NAME, "webFetchFromFile", e);
 		}
-		return new HashMap<Link,Pair<Long,ArrayList<Link>>>();
+		return new HashMap<NewLink,Pair<Long,ArrayList<NewLink>>>();
 	}
+
 	@SuppressWarnings("unchecked")
-	private ArrayList<Link> fromFile(String fileName) throws ToastException {
+	private ArrayList<NewLink> fromFile(String fileName,String oldFilename) throws ToastException {
+		try {
+			ArrayList<NewLink> ret = fromOldFile(oldFilename);
+			storeObject(ret, fileName);
+			deleteFile(oldFilename);
+			return ret;
+		} catch (Exception e) {
+			//Log.d("Debugging","fromFile_old",e);
+			deleteFile(oldFilename); //It's corrupted anyhow!	
+		}
+		
 		try {
 			ObjectInputStream ois;
 			FileInputStream fos = openFileInput(fileName);
 			ois = new ObjectInputStream(fos);
-			ArrayList<Link> ret = (ArrayList<Link>) ois.readObject();
+			ArrayList<NewLink> ret = (ArrayList<NewLink>) ois.readObject();
 			ois.close();
 			return ret;
 		} catch (ClassCastException e) {
@@ -717,9 +738,37 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 		}
 
 	}
+	@SuppressWarnings("unchecked")
+	private ArrayList<NewLink> fromOldFile(String fileName) throws Exception {
+		//try {
+			ObjectInputStream ois;
+			FileInputStream fos = openFileInput(fileName);
+			ois = new ObjectInputStream(fos);
+			ArrayList<Link> ret = (ArrayList<Link>) ois.readObject();
+			ois.close();
+			ArrayList<NewLink> ret2 = new ArrayList<NewLink>();
+			for (int i = 0; i < ret.size(); i++) {
+				ret2.add(ret.get(i).getLink());
+			}
+			return ret2;
+		/*} catch (ClassCastException e) {
+			throw new ToastException("Stream corrupted");
+		} catch (StreamCorruptedException e) {
+			throw new ToastException("Stream corrupted");
+		} catch (OptionalDataException e) {
+			throw new ToastException("Stream corrupted");
+		} catch (ClassNotFoundException e) {
+			throw new ToastException("Stream corrupted");
+		} catch (IOException e) {
+			return null;
+		} catch (URISyntaxException e) {
+			throw new ToastException("Old stream corrupted");
+		}*/
 
-	private boolean storeLink(Link l, String filename) {
-		ArrayList<Link> put = new ArrayList<Link>();
+	}
+
+	private boolean storeLink(NewLink l, String filename) {
+		ArrayList<NewLink> put = new ArrayList<NewLink>();
 		while (l != null) {
 			put.add(l);
 			l = l.getPrev();
@@ -736,6 +785,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 			oos.close();
 			return true;
 		} catch (IOException e) {
+			//Log.d("Debugging","storeObject",e);
 			return false;
 		}
 
@@ -758,7 +808,7 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 
 	private class DownloadHandler extends AsyncTask<Void, Void, String> {
 		LectureListView currentList;
-		ArrayList<Link> currentView;
+		ArrayList<NewLink> currentView;
 
 		protected String doInBackground(Void... none) {
 
@@ -769,12 +819,11 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 				try {
 					// Log.d(APP_NAME,"Playing: " + currLink.getUrl());
 					data = WebFetcher.getUrlData(currLink.getUrl());
-					playMovie(data);
+					return playMovie(data);
 				} catch (ToastException e) {
 					return e.getMessage();
 				}
 
-				return null;
 			} else if (currLink.getType() == Patterns.SEARCH)
 				currentList = findList;
 			else {
@@ -804,24 +853,23 @@ public class LectureViewer extends Activity implements OnItemClickListener {
 				}
 			}
 
-			if (postMsg != null && !postMsg.equals("")) {
-				shortToast(postMsg);
+			if (postMsg != null) {
+				postMsg.show();
 				postMsg = null;
 			}
 			if (error != null) {
 				currentView.clear();
-				Link retryLink = new Link(
-						"Connection Fails, Press here to retry", "retry");
-				retryLink.setType(Patterns.RETRY);
-				currentView.add(retryLink);
-			}
-			if (currentView.isEmpty()) {
-				Link retryLink = new Link(
-						"No Results, Press here to retry", "retry");
+				NewLink retryLink = new NewLink("Connection Fails, Press here to retry", null);
 				retryLink.setType(Patterns.RETRY);
 				currentView.add(retryLink);
 			}
 			
+			if (currentView.isEmpty()) {
+				NewLink retryLink = new NewLink("No Results, Press here to retry", null);
+				retryLink.setType(Patterns.RETRY);
+				currentView.add(retryLink);
+			}
+				
 			currentList.notifyChange();
 		}
 	}

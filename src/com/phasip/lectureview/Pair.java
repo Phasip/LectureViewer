@@ -3,18 +3,19 @@ package com.phasip.lectureview;
 import java.io.Serializable;
 
 
-public class Pair<L extends Serializable,R extends Serializable> implements Serializable {
+public class Pair<L extends Serializable,Ri extends Serializable> implements Serializable {
 
-	  private final L left;
-	  private final R right;
+	private static final long serialVersionUID = 4773405542094760147L;
+	private final L left;
+	  private final Ri right;
 
-	  public Pair(L left, R right) {
+	  public Pair(L left, Ri right) {
 	    this.left = left;
 	    this.right = right;
 	  }
 
 	  public L getLeft() { return left; }
-	  public R getRight() { return right; }
+	  public Ri getRight() { return right; }
 
 	  @Override
 	  public int hashCode() { return left.hashCode() ^ right.hashCode(); }
@@ -23,7 +24,8 @@ public class Pair<L extends Serializable,R extends Serializable> implements Seri
 	  public boolean equals(Object o) {
 	    if (o == null) return false;
 	    if (!(o instanceof Pair)) return false;
-	    Pair pairo = (Pair) o;
+	    @SuppressWarnings("rawtypes")
+		Pair pairo = (Pair) o;
 	    return this.left.equals(pairo.getLeft()) &&
 	           this.right.equals(pairo.getRight());
 	  }

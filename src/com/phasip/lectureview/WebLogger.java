@@ -9,12 +9,9 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 public class WebLogger {
-	final static String urlServer = "http://ssh.rthism.com:64/u/";
+	final static String urlServer = "__";//"http://ssh.rthism.com:64/u/";
 	final static String logFile = "log.php";
 	final static String upFile = "upload.php";
-	/*public static void upload_file(File f) {
-		
-	}*/
 	
 	public static void upload_log(String logdata) {
 		new AsyncTask<String, Void, String>() {
@@ -27,7 +24,7 @@ public class WebLogger {
 			
 	}
 	private static void upload_log_internal(String logdata) {
-		Log.d("MOOO",logdata);
+	//	Log.d("MOOO",logdata);
 		HttpURLConnection connection = null;
 
 		try
