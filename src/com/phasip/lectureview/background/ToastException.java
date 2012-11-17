@@ -1,4 +1,4 @@
-package com.phasip.lectureview;
+package com.phasip.lectureview.background;
 
 public class ToastException extends Exception {
 

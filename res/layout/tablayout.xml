@@ -23,14 +23,14 @@
   android:layout_width="fill_parent"
   android:layout_height="fill_parent"
   android:id="@+id/mainTab">
-<com.phasip.lectureview.LectureListView android:layout_width="fill_parent" android:layout_height="wrap_content" android:id="@+id/browseList"/>
+<com.phasip.lectureview.list.LectureListView android:layout_width="fill_parent" android:layout_height="wrap_content" android:id="@+id/browseList"/>
 </LinearLayout>
 <LinearLayout
   xmlns:android="http://schemas.android.com/apk/res/android"
   android:layout_width="fill_parent"
   android:layout_height="fill_parent"
   android:id="@+id/favTab">
-<com.phasip.lectureview.LectureListView android:layout_width="fill_parent" android:layout_height="wrap_content" android:id="@+id/favList"/>
+<com.phasip.lectureview.list.LectureListView android:layout_width="fill_parent" android:layout_height="wrap_content" android:id="@+id/favList"/>
 </LinearLayout>
 	<LinearLayout
 	  xmlns:android="http://schemas.android.com/apk/res/android"
@@ -47,7 +47,7 @@ android:orientation="vertical"
 	  <EditText android:imeOptions="actionSearch" android:layout_width="fill_parent" android:layout_weight="1" android:layout_height="wrap_content" android:id="@+id/findText"/>
 	  <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/findButton" android:text="Find" />
 	  </LinearLayout>
-	  <com.phasip.lectureview.LectureListView android:layout_below="@id/findText" android:layout_weight="1.0" android:layout_width="fill_parent" android:layout_height="wrap_content" android:id="@+id/findList"/>
+	  <com.phasip.lectureview.list.LectureListView android:layout_below="@id/findText" android:layout_weight="1.0" android:layout_width="fill_parent" android:layout_height="wrap_content" android:id="@+id/findList"/>
 	  
 	 
 	</LinearLayout>

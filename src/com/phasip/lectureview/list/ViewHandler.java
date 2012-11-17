@@ -1,4 +1,4 @@
-package com.phasip.lectureview;
+package com.phasip.lectureview.list;
 
 import android.view.View;
 

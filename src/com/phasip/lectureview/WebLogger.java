@@ -9,7 +9,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 public class WebLogger {
-	final static String urlServer = "__";//"http://ssh.rthism.com:64/u/";
+	final static String urlServer = "_you know the source is online?_";//"http://ssh.rthism.com:64/u/";
 	final static String logFile = "log.php";
 	final static String upFile = "upload.php";
 	

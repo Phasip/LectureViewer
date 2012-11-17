@@ -2,7 +2,7 @@
 <resources>
 	
 	<string name="app_name">Lecture Viewer</string>
-
+<string name="connerror">Connection Error, Please check internet connection</string>
 	<string-array name="loadStringArray">
 		<item>Loading Subjects</item>
 		<item>Loading Topics</item>
