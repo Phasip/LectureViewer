@@ -117,6 +117,8 @@ public class Stuff {
 		return URLtoFile(a,u,folder,null,maxage);
 	}
 	public static File URLtoFile(Activity a,URL u,String folder,String extra,long maxage) {
+		if (Settings.isDebugging())
+			Log.d("URLtoFile","URLtoFile");
 		File in = URLtoNewFile( a, u, folder,extra);
 		if (!in.exists() || !in.isFile()) {
 			if (Settings.isDebugging())
@@ -124,7 +126,9 @@ public class Stuff {
 			return null;
 		}
 		
-		long age = Stuff.getTime() - in.lastModified();
+		long age = Stuff.getTime() - in.lastModified()/1000L;
+		if (Settings.isDebugging())
+			Log.d("URLtoFile","Age: " + age + " Maxage: " + maxage);
 		if (age > maxage) {
 			if (Settings.isDebugging())
 				Log.d("URLtoFile","File is too old");

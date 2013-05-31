@@ -134,7 +134,7 @@ public class Settings {
 	}
 
 	public static boolean isDebugging() {
-		return false;
+		return true;
 	}
 	public void setSeen(Link link,boolean seen) {
 		if (link == null || link.getType() != Patterns.PLAY )

@@ -49,7 +49,7 @@ public class CacheHandler {
 	}
 
 	public Collection<? extends Link> get(Link link) {
-		return get(link, 2 * 24 * 60 * 60);
+		return get(link, 2 * 24 * 60 * 60 + 5); //Has/Get combo s
 	}
 
 	public boolean set(Link link, Collection<? extends Link> list) {

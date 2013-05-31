@@ -59,6 +59,7 @@ public class DocumentDownloader {
 	}
 
 	public Document loadDocument(URL url) throws ToastException {
+		Log.d("LectureViewer","LoadDocument");
 		if (url == null)
 			throw new ToastException("We fail to parse the url, write a bug report to phasip@gmail.com");
 		
@@ -68,6 +69,8 @@ public class DocumentDownloader {
 	}
 
 	public File loadDocumentFile(URL url) throws ToastException {
+		if (Settings.isDebugging())
+			Log.d("LectureViewer","LoadDocumentFile");
 		if (url == null)
 			return null;
 		File in = Stuff.URLtoNewFile(a, url, "dcache");
@@ -75,7 +78,9 @@ public class DocumentDownloader {
 		if (!in.exists() || !in.isFile()) {
 			result = WebDownloader.downloadToFile(url, in);
 		} else {
-			long age = Stuff.getTime() - in.lastModified();
+			long age = Stuff.getTime() - in.lastModified()/1000L;
+			if (Settings.isDebugging())
+				Log.d("LectureViewer","Age is " + age + " should download if " + (60 * 60 * 24 * 2));
 			if (age > 60 * 60 * 24 * 2)
 				result = WebDownloader.downloadToFile(url, in);
 		}
@@ -122,6 +127,8 @@ public class DocumentDownloader {
 	}
 
 	private static Document FileToDocument(final File doc, final URL url) {
+		if (Settings.isDebugging())
+			Log.d("LectureViewer","FileToDocument");
 		try {
 			Parser p = new Parser();
 			p.setFeature(Parser.namespacesFeature, false);

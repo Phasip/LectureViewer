@@ -79,13 +79,14 @@ public class PlayListHandler implements ListHandler {
 
 				Log.d(APP_NAME, "Loading url" + l.getUrl().toExternalForm());
 				String data = generateString(f);
-				Pattern patt = Pattern.compile("youtube.com/v/([^'\"]+)['\"]");
+				Pattern patt = Pattern.compile("youtube.com/(v/|watch\\?v=)([^'\"]+)['\"]");
+				// "http://www.youtube.com/watch?v=TtIjowa-9co"
 				// "http://www.youtube.com/v/eg6WnD86IAk?autoplay=1"
 				Matcher matcher = patt.matcher(data);
 				if (!matcher.find()) {
 					return -1;
 				}
-				url = matcher.group(1);
+				url = matcher.group(2);
 			} catch (MalformedURLException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
